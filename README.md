@@ -1,4 +1,4 @@
-# Isa Manager – gestionale Isaa Rolls
+# Isaa Rolls Manager – gestionale Isaa Rolls
 
 Gestionale web e mobile per:
 - magazzino, ricette e food cost;
