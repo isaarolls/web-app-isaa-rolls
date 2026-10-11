@@ -14,10 +14,18 @@ export function Products() {
   const { data, error, loading, reload } = useData(`/products?with_cost=1&active=${inactive ? 0 : 1}`);
   const [creating, setCreating] = useState(false);
   const costs = can("products.costs");
+  const stockView = can("inventory.view");
+  const unlinked = (data || []).filter((r) => r.is_active && !r.stock_item_id && r.unload_stock).length;
+  const [run, busy] = useAction();
   return (
     <>
       <PageHeader title="Prodotti e ricette" sub="Prodotti in vendita con la loro distinta base: costo, margine e prezzo consigliato si aggiornano con i costi di magazzino."
         actions={can("products.edit") && <Button variant="primary" icon={LuPlus} onClick={() => setCreating(true)}>Nuovo prodotto</Button>} />
+      {can("products.edit") && unlinked > 0 && (
+        <Notice tone="warn"><div className="row" style={{ justifyContent: "space-between" }}>
+          <span>{unlinked === 1 ? "1 prodotto non è contato" : `${unlinked} prodotti non sono contati`} a magazzino: non puoi sapere quanti pezzi ci sono né se ne mancano.</span>
+          <Button variant="primary" size="sm" busy={busy} onClick={async () => { const r = await run(() => api.post("/products/track-stock-all")); if (r) { reload(); navigate("/magazzino?tab=pronti"); } }}>Collega tutti al magazzino</Button>
+        </div></Notice>)}
       <div className="row" style={{ marginBottom: 12 }}><Check checked={inactive} onChange={setInactive} label="Includi prodotti non più in vendita" /></div>
       <ErrorBox error={error} onRetry={reload} />
       {loading && !data ? <Loading /> : (
@@ -26,6 +34,8 @@ export function Products() {
           columns={[
             { key: "name", label: "Prodotto", render: (r) => <><b style={{ fontWeight: 600 }}>{r.name}</b><span className="sub">{r.category_name || ""}{r.is_active ? "" : " · non in vendita"}</span></> },
             { key: "sale_price", label: "Prezzo", type: "money" },
+            stockView && { key: "stock_qty", label: "Pezzi pronti", align: "right", sortValue: (r) => Number(r.stock_qty ?? -1e9),
+              render: (r) => r.stock_item_id ? <span className={Number(r.stock_qty) < 0 ? "neg" : ""}>{F.num(r.stock_qty)} pz</span> : <Badge tone="warn">non contato</Badge> },
             { key: "recipe", label: "Ricetta", sortable: false, render: (r) => r.card?.has_recipe ? (r.card.missing_costs ? <Badge tone="warn">costi mancanti</Badge> : <Badge tone="good">sì</Badge>) : <Badge tone="bad">manca</Badge> },
             costs && { key: "cost", label: "Costo diretto", align: "right", sortValue: (r) => Number(r.card?.unit_cost), render: (r) => F.eur(r.card?.unit_cost) },
             costs && { key: "fc", label: "Food cost", align: "right", sortValue: (r) => Number(r.card?.food_cost_pct), render: (r) => F.pct(r.card?.food_cost_pct) },
@@ -43,7 +53,7 @@ function ProductModal({ product, onClose, onSaved }) {
   const { settings } = useApp();
   const [f, setF] = useState(() => product ? { ...product, sale_price: F.toInput(product.sale_price), vat_rate: F.toInput(product.vat_rate),
     target_margin_pct: F.toInput(product.target_margin_pct) } : { name: "", code: "", category_id: "", sale_price: "", vat_rate: F.toInput(settings.default_sale_vat_rate ?? 10),
-    target_margin_pct: "", unload_stock: true, is_active: true, sort_order: 0, description: "", color: "" });
+    target_margin_pct: "", unload_stock: true, is_active: true, sort_order: 0, description: "", color: "", track_stock: true });
   const [run, busy] = useAction();
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v?.target ? v.target.value : v }));
   const submit = async () => {
@@ -63,7 +73,10 @@ function ProductModal({ product, onClose, onSaved }) {
         <Field label="Margine obiettivo" hint={`Vuoto = predefinito (${F.num(settings.default_target_margin_pct)}%)`}><NumInput value={f.target_margin_pct} onChange={set("target_margin_pct")} suffix="%" /></Field>
         <Field label="Ordine in cassa" hint="Numeri più bassi compaiono prima"><Input type="number" value={f.sort_order} onChange={set("sort_order")} /></Field>
         <div className="stack span-all" style={{ gap: 8 }}>
-          <Check checked={f.unload_stock} onChange={set("unload_stock")} label="Scarica gli ingredienti dal magazzino a ogni vendita" />
+          <Check checked={f.unload_stock} onChange={set("unload_stock")} label="Scarica dal magazzino a ogni vendita" />
+          {product?.stock_item_id ? <span className="muted small">Contato a magazzino come pezzo pronto: «{product.stock_item_name}»</span>
+            : f.unload_stock && <Check checked={!!f.track_stock} onChange={set("track_stock")} label="Conta i pezzi pronti in magazzino"
+              hint="Consigliato: la produzione aggiunge pezzi, ogni vendita ne toglie uno e a fine giornata vedi se ne mancano" />}
           {product && <Check checked={f.is_active} onChange={set("is_active")} label="In vendita" />}
         </div>
       </div>
@@ -159,6 +172,14 @@ export function ProductEditor({ params }) {
       <PageHeader back={{ to: "/prodotti", label: "Prodotti" }} title={p.name} sub={`${p.category_name || "Senza categoria"} · ${F.eur(p.sale_price)} IVA ${F.num(p.vat_rate)}% inclusa${p.is_active ? "" : " · non in vendita"}`}
         actions={can("products.edit") && <><Button onClick={() => setEdit(true)}>Modifica prodotto</Button>
           <Button variant="primary" onClick={() => setEditRecipe(!editRecipe)}>{editRecipe ? "Chiudi editor" : c.has_recipe ? "Modifica ricetta" : "Crea ricetta"}</Button></>} />
+      {p.stock_item_id ? (
+        <Notice tone="info">Ogni vendita scarica <b>1 pezzo pronto</b> di <a href={`#/magazzino/${p.stock_item_id}`}>{p.stock_item_name}</a>
+          {p.stock_qty !== undefined && <> (in magazzino: <b>{F.num(p.stock_qty)} pz</b>)</>}. Gli ingredienti escono dal magazzino quando registri la produzione
+          in Magazzino → Pezzi pronti e ammanchi.</Notice>
+      ) : can("products.edit") && p.unload_stock && (
+        <Notice tone="warn"><div className="row" style={{ justifyContent: "space-between" }}><span>Questo prodotto non è contato a magazzino.</span>
+          <Button size="sm" variant="primary" onClick={async () => { await api.post(`/products/${p.id}/track-stock`); toast("Prodotto collegato al magazzino", "ok"); reload(); }}>Conta i pezzi pronti</Button></div></Notice>
+      )}
       {costs && c && (
         <div className="stats">
           <div className="stat"><span className="stat-label">Prezzo netto IVA</span><span className="stat-value">{F.eur(c.net_price)}</span></div>
@@ -175,7 +196,7 @@ export function ProductEditor({ params }) {
       <div className="card" style={{ marginTop: 14 }}>
         <div className="card-head"><h2>{editRecipe ? "Nuova versione della ricetta" : c.has_recipe ? `Ricetta – versione ${c.recipe?.version_no ?? ""}` : "Ricetta"}</h2></div>
         {editRecipe ? (
-          <RecipeEditor initial={c.recipe} showYield={false}
+          <RecipeEditor initial={p.edit_recipe || c.recipe} showYield={false}
             preview={costs ? (b) => api.post("/products/preview-cost", { ...b, sale_price: p.sale_price, vat_rate: p.vat_rate, target_margin_pct: p.target_margin_pct }) : null}
             onSave={async (b) => { await api.post(`/products/${p.id}/recipe`, b); toast("Nuova versione della ricetta salvata", "ok"); setEditRecipe(false); reload(); }} />
         ) : c.has_recipe && c.recipe ? (

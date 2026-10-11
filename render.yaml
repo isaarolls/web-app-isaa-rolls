@@ -1,8 +1,15 @@
+# Blueprint Render: crea il servizio web con un clic.
+# Render → New → Blueprint → seleziona il repository GitHub che contiene questo file.
+#
+# Database: per contenere i costi si usa PostgreSQL gratuito su Neon (neon.com), regione Frankfurt.
+# Incolla la "connection string" di Neon nella variabile DATABASE_URL quando Render la chiede.
+# Per passare in futuro al database di Render, vedi docs/PUBBLICAZIONE.md.
+
 services:
   - type: web
     name: isa-manager
     runtime: docker
-    plan: 0.5c-512mb
+    plan: 0.5c-512mb           # sempre acceso (il piano gratuito va in pausa quando non è usato)
     region: frankfurt
     healthCheckPath: /healthz
     autoDeploy: true
@@ -10,12 +17,22 @@ services:
       - key: APP_ENV
         value: production
       - key: DATABASE_URL
-        sync: false
+        sync: false            # connection string di Neon (postgresql://...neon.tech/...?sslmode=require)
       - key: DB_POOL_SIZE
         value: "5"
       - key: PUBLIC_URL
-        sync: false
+        sync: false            # es. https://isa-manager.onrender.com oppure https://gestionale.isaarolls.it
       - key: CORS_ORIGINS
         value: capacitor://localhost,https://localhost,http://localhost
       - key: TZ
         value: Europe/Rome
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false

@@ -42,7 +42,7 @@ export function Login({ onLogin }) {
 
   return (
     <div className="login-page">
-      <LoginArt title="Il laboratorio, i conti e la cassa in un posto solo" text="Accedi con le tue credenziali personali. Ogni operazione viene registrata con il tuo nome." />
+      <LoginArt title="Isaa Rolls Manager" text="Accedi con le tue credenziali personali. Ogni operazione viene registrata con il tuo nome." />
       <div className="login-form">
         <form onSubmit={submit}>
           <h2 style={{ fontSize: 24 }}>{forgot ? "Recupera la password" : "Accedi"}</h2>

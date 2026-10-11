@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuLayoutDashboard, LuShoppingBag, LuReceipt, LuWallet, LuPackage, LuCookie, LuCreditCard, LuTruck,
-  LuClipboardList, LuChartColumn, LuUsers, LuSettings, LuLogOut, LuMenu, LuEllipsis, LuKeyRound,
+  LuClipboardList, LuChartColumn, LuUsers, LuSettings, LuLogOut, LuMenu, LuEllipsis, LuKeyRound, LuLock,
 } from "react-icons/lu";
 import { api, setToken, setUnauthorizedHandler } from "./api.js";
 import { AppCtx, Toasts, useRoute, navigate, Loading, Link } from "./ui.jsx";
@@ -24,6 +24,7 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LuLayoutDashboard, perm: "dashboard.view" },
   { to: "/cassa", label: "Vendi", icon: LuShoppingBag, perm: "sales.create" },
   { to: "/vendite", label: "Vendite", icon: LuReceipt, perm: "sales.view" },
+  { to: "/chiusura", label: "Chiusura di cassa", icon: LuLock, perm: "sales.close_day" },
   { to: "/incassi", label: "Incassi", icon: LuWallet, perm: "payments.view" },
   { group: "Magazzino e prodotti" },
   { to: "/magazzino", label: "Magazzino", icon: LuPackage, perm: "inventory.view" },
@@ -91,7 +92,7 @@ export default function App() {
   if (route.path.startsWith("/reimposta-password")) {
     return <AppCtx.Provider value={ctx}><ResetPassword token={route.query.token} /><Toasts items={toasts} dismiss={(id) => setToasts((t) => t.filter((x) => x.id !== id))} /></AppCtx.Provider>;
   }
-  if (me === undefined) return <Loading label="Avvio di Isa Manager…" />;
+  if (me === undefined) return <Loading label="Avvio di Isaa Rolls Manager…" />;
   if (!me) {
     return <AppCtx.Provider value={ctx}><Login onLogin={loadMe} /><Toasts items={toasts} dismiss={(id) => setToasts((t) => t.filter((x) => x.id !== id))} /></AppCtx.Provider>;
   }
@@ -103,12 +104,13 @@ export default function App() {
   const navItems = NAV.filter((n) => n.group || allowed(n.perm, ctx.can));
   const visible = navItems.filter((n, i) => !n.group || (navItems[i + 1] && !navItems[i + 1].group));
   const isOn = (to) => (to === "/" ? route.path === "/" : route.path === to || route.path.startsWith(to + "/"));
-  const company = me.settings?.company?.name || "Isa Manager";
+  const company = me.settings?.company?.name || "Isaa Rolls Manager";
   const tabs = [
     ctx.can("dashboard.view") && { to: "/", label: "Home", icon: LuLayoutDashboard },
     ctx.can("sales.view") && { to: "/vendite", label: "Vendite", icon: LuReceipt },
     ctx.can("sales.create") && { to: ctx.can("dashboard.view") ? "/cassa" : "/", label: "Vendi", icon: LuShoppingBag, sell: true },
     ctx.can("inventory.view") && { to: "/magazzino", label: "Magazzino", icon: LuPackage },
+    !ctx.can("sales.view") && ctx.can("sales.close_day") && { to: "/chiusura", label: "Chiusura", icon: LuLock },
   ].filter(Boolean).slice(0, 4);
 
   return (
@@ -117,7 +119,7 @@ export default function App() {
         <aside className={`side ${menuOpen ? "open" : ""}`} onClick={(e) => e.target.closest("a") && setMenuOpen(false)}>
           <Link to="/" className="side-brand">
             <img src="logo-240.png" alt="" />
-            <span><b>{company}</b><small>Isa Manager</small></span>
+            <span><b>Isaa Rolls Manager</b><small>{company !== "Isaa Rolls" && company !== "Isaa Rolls Manager" ? company : "Gestionale"}</small></span>
           </Link>
           {me.env !== "production" && <div className="env-flag">{me.env === "staging" ? "Ambiente di prova online" : me.env === "test" ? "Ambiente di test" : "Ambiente di sviluppo"}: dati non reali</div>}
           <nav aria-label="Menu principale">
@@ -135,7 +137,7 @@ export default function App() {
         <div style={{ minWidth: 0 }}>
           <header className="mobile-top">
             <button onClick={() => setMenuOpen(true)} aria-label="Apri menu"><LuMenu /></button>
-            <b>{company}</b>
+            <b>Isaa Rolls Manager</b>
             <span style={{ width: 30 }} />
           </header>
           <main className="main">

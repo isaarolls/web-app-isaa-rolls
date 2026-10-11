@@ -1,6 +1,6 @@
 {
   "appId": "it.isaarolls.manager",
-  "appName": "Isa Manager",
+  "appName": "Isaa Rolls Manager",
   "webDir": "dist",
   "backgroundColor": "#183533",
   "ios": { "contentInset": "always" },

@@ -1,4 +1,4 @@
-# Guida pratica a Isa Manager
+# Guida pratica a Isaa Rolls Manager
 
 ## Primo avvio: in quest'ordine (circa 1 ora)
 1. **Impostazioni → Azienda e criteri.** Controlla il nome dell'azienda, il regime IVA (ordinario), l'aliquota delle vendite (10%) e il margine obiettivo. Il criterio «costo materie prime sui consumi» è quello consigliato.
@@ -25,6 +25,17 @@
   - Se in una giornata non hai registrato i singoli scontrini, usa «Totale giornaliero» e inserisci solo l'importo.
 - **Errori**: da Vendite apri la vendita → «Annulla vendita», indicando il motivo. Il magazzino torna com'era e l'annullamento resta nello storico.
 - **Chiusura di cassa** (Vendite → Chiusura di cassa): conta i contanti e controlla il totale del POS. Il sistema mostra le differenze; con l'opzione attiva allinea il saldo di cassa.
+
+## Pezzi pronti e controllo ammanchi
+Ogni prodotto in vendita (roll, ciambelle, bibite) è contato a magazzino come «pezzo pronto». I prodotti nuovi si collegano da soli; quelli già esistenti si collegano una volta con **Prodotti → «Collega tutti al magazzino»**.
+- **La mattina** (Magazzino → Pezzi pronti e ammanchi): scrivi quanti pezzi hai preparato e premi «Registra produzione». Gli ingredienti escono dal magazzino secondo la ricetta.
+- **Durante il giorno**: ogni vendita in cassa toglie un pezzo.
+- **Assaggi regalati**: in cassa scegli «Omaggio / assaggio», tocca i prodotti regalati e premi «Registra omaggio». Il prezzo è 0 €, la giacenza scende e il costo resta registrato.
+- **A fine giornata**: premi «Conta di fine giornata», scrivi i pezzi rimasti davvero e conferma.
+- **Controllo ammanchi**: per ogni prodotto vedi preparati, venduti, omaggi, sprechi e **pezzi mancanti**, cioè quelli usciti senza essere battuti in cassa, con il loro valore e chi ha fatto la conta.
+- Le bibite si caricano con «Ricevi merce» quando arrivano.
+
+La ricetta di un prodotto collegato si modifica come sempre dalla sua pagina: gli ingredienti vanno al pezzo pronto, le confezioni restano sul prodotto.
 
 ## Ogni settimana
 - **Arrivo merce**: Ordini → «Ricevi merce» (oppure dall'ordine → «Registra arrivo merce»). Inserisci quantità e prezzi e lascia attiva «Registra anche la fattura». Il magazzino e la spesa da pagare vengono creati insieme, senza doppio conteggio del costo. Fotografa la fattura e allegala alla spesa.

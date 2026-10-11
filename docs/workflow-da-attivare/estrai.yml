@@ -1,0 +1,39 @@
+name: estrai
+on:
+  push:
+    paths: ['*.zip', '**/*.zip']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  estrai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Estrai gli zip caricati
+        run: |
+          set -e
+          shopt -s nullglob
+          list=""
+          for f in *.zip; do list="$list$(git log -1 --format=%ct -- "$f") $f"$'\n'; done
+          if [ -z "$list" ]; then echo "Nessuno zip da estrarre"; exit 0; fi
+          printf '%s' "$list" | sort -n | cut -d' ' -f2- > /tmp/zips.txt
+          while IFS= read -r z; do
+            [ -n "$z" ] || continue
+            echo "Estraggo: $z"
+            rm -rf /tmp/x && mkdir /tmp/x
+            unzip -q -o "$z" -d /tmp/x
+            src=/tmp/x
+            if [ ! -f /tmp/x/Dockerfile ] && [ "$(ls -A /tmp/x | wc -l)" -eq 1 ]; then src="/tmp/x/$(ls -A /tmp/x)"; fi
+            rm -rf "$src/.github" "$src/__MACOSX"
+            cp -a "$src/." .
+            git rm -q --cached -- "$z" || true
+            rm -f -- "$z"
+          done < /tmp/zips.txt
+          git config user.name "estrai-bot"
+          git config user.email "estrai-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "Aggiornamento estratto dallo zip caricato" || { echo "Nessuna modifica"; exit 0; }
+          git push

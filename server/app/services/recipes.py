@@ -43,6 +43,12 @@ def item_unit_cost(c: db.Cursor, item: dict, depth: int = 0) -> tuple[Decimal, b
     avg = D(item.get("avg_cost"))
     if avg > 0:
         return avg, False
+    if item.get("item_kind", item.get("kind")) == "semilavorato" and depth < MAX_DEPTH:
+        # prodotto pronto non ancora prodotto: costo teorico dalla sua ricetta
+        v = version_at(c, item_id=item["item_id"] if "item_id" in item else item["id"])
+        if v:
+            card = cost_of_version(c, v, depth + 1)
+            return card["unit_cost"], card["missing_costs"] > 0
     lp = D(item.get("last_purchase_price"))
     return lp, lp == 0
 

@@ -166,7 +166,20 @@ def day(ctx: Ctx):
     except ValueError:
         raise bad("Data non valida")
     with db.read() as c:
-        return svc.day_summary(c, d)
+        out = svc.day_summary(c, d)
+    if not ctx.can("sales.view"):
+        out = _blind(out)
+    return out
+
+
+def _blind(out: dict) -> dict:
+    """Conta alla cieca per chi non vede le vendite (es. dipendente con la sola chiusura di cassa):
+    niente importi attesi né differenze, così il conteggio dei contanti è onesto."""
+    cl = out.get("closure")
+    return {"date": out["date"], "blind": True,
+            "by_method": [{"method_id": m["method_id"], "name": m["name"], "kind": m["kind"]} for m in out["by_method"]],
+            "by_channel": [], "totals": {},
+            "closure": {"closed_at": cl["closed_at"], "counted": cl["counted"], "notes": cl["notes"]} if cl else None}
 
 
 class CloseIn(BaseModel):
@@ -185,6 +198,8 @@ def close_day(ctx: Ctx):
         row = svc.close_day(c, ctx.uid, d, data.counted, data.notes, data.adjust_cash)
         audit(c, ctx, "create", "day_closure", d.isoformat(),
               f"Chiusura cassa del {d.strftime('%d/%m/%Y')} – differenza {row['difference']} €", None, row)
+    if not ctx.can("sales.view"):
+        return {"business_date": row["business_date"], "closed_at": row["closed_at"]}
     return row
 
 
@@ -203,5 +218,8 @@ def reopen_day(ctx: Ctx):
 @api("GET", "/days", ["sales.close_day", "sales.view"])
 def list_closures(ctx: Ctx):
     with db.read() as c:
-        return c.all("SELECT dc.*, u.full_name AS closed_by_name FROM day_closures dc LEFT JOIN users u ON u.id=dc.closed_by "
-                     "ORDER BY business_date DESC LIMIT 120")
+        rows = c.all("SELECT dc.*, u.full_name AS closed_by_name FROM day_closures dc LEFT JOIN users u ON u.id=dc.closed_by "
+                      "ORDER BY business_date DESC LIMIT 120")
+    if not ctx.can("sales.view"):
+        rows = [{"business_date": r["business_date"], "closed_by_name": r["closed_by_name"]} for r in rows]
+    return rows

@@ -49,6 +49,17 @@ def convert(c: db.Cursor, qty, from_unit: str, to_unit: str) -> Decimal:
     return D(qty) * unit_factor(c, from_unit, to_unit)
 
 
+def _fallback_cost(c: db.Cursor, it: dict) -> Decimal:
+    """Costo per un'uscita da un articolo senza costo medio (es. pezzi pronti venduti prima di registrare
+    la produzione): costo teorico della ricetta, altrimenti ultimo prezzo d'acquisto."""
+    if it["kind"] == "semilavorato":
+        from . import recipes  # import locale: recipes usa questo modulo
+        v = recipes.version_at(c, item_id=it["id"])
+        if v:
+            return q6(recipes.cost_of_version(c, v)["unit_cost"])
+    return q6(D(it["last_purchase_price"] or 0))
+
+
 def move(
     c: db.Cursor,
     uid: int | None,
@@ -87,8 +98,8 @@ def move(
             new_avg = q6((qb * avg + qty * uc) / qa)
     else:
         if unit_cost is None:
-            uc = avg
-            new_avg = avg
+            uc = avg if avg > 0 else _fallback_cost(c, it)
+            new_avg = uc
         else:
             # uscita a costo specifico (storno di un carico, reso a fornitore): ricalcola il medio
             uc = q6(unit_cost)

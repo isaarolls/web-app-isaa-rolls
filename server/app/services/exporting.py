@@ -59,7 +59,7 @@ def _period_label(d1, d2):
     return f"dal {fmt_date(d1)} al {fmt_date(d2)}"
 
 
-DISCLAIMER = ("Stima gestionale elaborata da Isa Manager: non costituisce bilancio fiscale ufficiale. "
+DISCLAIMER = ("Stima gestionale elaborata da Isaa Rolls Manager: non costituisce bilancio fiscale ufficiale. "
               "I criteri di contabilizzazione vanno verificati con il commercialista.")
 
 
@@ -81,7 +81,7 @@ def pl_to_xlsx(data: dict) -> bytes:
     ws = wb.active
     ws.title = "Conto economico"
     pl, liq = data["pl"], data["liquidity"]
-    ws["A1"] = f"{data['company'].get('name') or 'Isa Manager'} – Report economico {_period_label(data['from'], data['to'])}"
+    ws["A1"] = f"{data['company'].get('name') or 'Isaa Rolls Manager'} – Report economico {_period_label(data['from'], data['to'])}"
     ws["A1"].font = Font(bold=True, size=14)
     ws["A2"] = DISCLAIMER
     ws["A2"].font = Font(italic=True, size=9, color="666666")
@@ -215,7 +215,7 @@ def pl_to_pdf(data: dict) -> bytes:
                             title=f"Report economico {_period_label(data['from'], data['to'])}")
     pl, liq = data["pl"], data["liquidity"]
     el = [
-        Paragraph(f"{data['company'].get('name') or 'Isa Manager'} — Report economico", h1),
+        Paragraph(f"{data['company'].get('name') or 'Isaa Rolls Manager'} — Report economico", h1),
         Paragraph(f"Periodo: <b>{_period_label(data['from'], data['to'])}</b> · generato il "
                   f"{data['generated'].strftime('%d/%m/%Y %H:%M')}", body),
         Paragraph(DISCLAIMER, small),
@@ -311,7 +311,7 @@ def pl_to_pdf(data: dict) -> bytes:
         canvas.saveState()
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(colors.HexColor("#6b625d"))
-        canvas.drawString(16 * mm, 8 * mm, "Isa Manager · stima gestionale")
+        canvas.drawString(16 * mm, 8 * mm, "Isaa Rolls Manager · stima gestionale")
         canvas.drawRightString(A4[0] - 16 * mm, 8 * mm, f"Pagina {doc_.page}")
         canvas.restoreState()
 

@@ -58,12 +58,23 @@ class Base(ApiTest):
         self.admin.post(f"/items/{impasto['id']}/recipe", {"yield_qty": "1", "lines": [
             {"item_id": farina["id"], "qty": "600", "unit_code": "g"},
             {"item_id": latte["id"], "qty": "400", "unit_code": "ml"}]})
-        prod = self.admin.post("/products", {"name": f"Roll {uid()}", "sale_price": "5.50", "vat_rate": "10"})
+        prod = self.admin.post("/products", {"name": f"Roll {uid()}", "sale_price": "5.50", "vat_rate": "10", "track_stock": False})
         self.admin.post(f"/products/{prod['id']}/recipe", {"lines": [
             {"item_id": impasto["id"], "qty": "100", "unit_code": "g"},
             {"item_id": crema["id"], "qty": "25", "unit_code": "g"},
             {"item_id": box["id"], "qty": "1", "unit_code": "pz"}]})
         return dict(farina=farina, latte=latte, crema=crema, box=box, impasto=impasto, prod=prod)
+
+    def make_user(self, role_code):
+        roles = {r["code"]: r["id"] for r in self.admin.get("/roles")}
+        email = f"{role_code}.{uid().lower()}@test.local"
+        res = self.admin.post("/users", {"email": email, "full_name": f"Utente {role_code}", "role_id": roles[role_code],
+                                         "password": "PasswordTest2026"})
+        # primo accesso: cambio password obbligatorio
+        c = Client(email, "PasswordTest2026")
+        c.get("/items", expect=403)
+        c.post("/auth/change-password", {"current_password": "PasswordTest2026", "new_password": "NuovaPassword2026"})
+        return Client(email, "NuovaPassword2026"), res["id"]
 
     def qty(self, item_id):
         return Dec(str(self.admin.get(f"/items/{item_id}")["qty_on_hand"]))
@@ -94,17 +105,6 @@ class TestAutenticazione(Base):
 
 
 class TestPermessi(Base):
-    def make_user(self, role_code):
-        roles = {r["code"]: r["id"] for r in self.admin.get("/roles")}
-        email = f"{role_code}.{uid().lower()}@test.local"
-        res = self.admin.post("/users", {"email": email, "full_name": f"Utente {role_code}", "role_id": roles[role_code],
-                                         "password": "PasswordTest2026"})
-        # primo accesso: cambio password obbligatorio
-        c = Client(email, "PasswordTest2026")
-        c.get("/items", expect=403)
-        c.post("/auth/change-password", {"current_password": "PasswordTest2026", "new_password": "NuovaPassword2026"})
-        return Client(email, "NuovaPassword2026"), res["id"]
-
     def test_addetto_vendite(self):
         c, _ = self.make_user("vendite")
         c.get("/reports/pl", expect=403)
@@ -226,7 +226,7 @@ class TestMagazzino(Base):
 
     def test_concorrenza_vendite_simultanee(self):
         it = self.item("Zucchero velo", unit="g", qty=10000, cost="0.002")
-        prod = self.admin.post("/products", {"name": f"Ciambella {uid()}", "sale_price": "2.00", "vat_rate": "10"})
+        prod = self.admin.post("/products", {"name": f"Ciambella {uid()}", "sale_price": "2.00", "vat_rate": "10", "track_stock": False})
         self.admin.post(f"/products/{prod['id']}/recipe", {"lines": [{"item_id": it["id"], "qty": "15", "unit_code": "g"}]})
         clients = [Client() for _ in range(4)]
         ch = self.channel()["id"]
@@ -545,3 +545,112 @@ class TestEsportazioni(Base):
         an = self.admin.get("/reports/analysis?from=2025-01-01&to=2025-12-31")
         self.assertIn("break_even", an)
         self.assertTrue(an["break_even"]["assumptions"])
+
+
+class TestProdottiProntiEAmmanchi(Base):
+    def test_collegamento_produzione_vendita_ammanchi(self):
+        farina = self.item("Farina")
+        self.load(farina["id"], 10, "2.00")
+        box = self.item("Box", unit="pz", kind="confezione")
+        self.load(box["id"], 100, "0.10")
+        prod = self.admin.post("/products", {"name": f"Roll Nutella {uid()}", "sale_price": "5.50", "vat_rate": "10"})
+        self.assertTrue(prod["stock_item_id"])                       # collegato in automatico alla creazione
+        sid = prod["stock_item_id"]
+        # la ricetta inserita dall'editor del prodotto va al pezzo pronto; il prodotto scarica 1 pezzo + box
+        self.admin.post(f"/products/{prod['id']}/recipe", {"lines": [
+            {"item_id": farina["id"], "qty": "100", "unit_code": "g"},
+            {"item_id": box["id"], "qty": "1", "unit_code": "pz"}], "valid_from": "2025-01-01T00:00:00"})
+        p = self.admin.get(f"/products/{prod['id']}")
+        self.assertEqual({l["item_id"] for l in p["card"]["recipe"]["lines"]}, {sid, box["id"]})
+        self.assertEqual(Dec(str(p["card"]["unit_cost"])), Dec("0.30"))  # 0,1 kg × 2 € + box 0,10 (costo teorico)
+        self.assertEqual({l["item_id"] for l in p["edit_recipe"]["lines"]}, {farina["id"], box["id"]})
+        # produzione del giorno: 20 pezzi → scarica 2 kg di farina
+        out = self.admin.post("/productions/batch", {"lines": [{"item_id": sid, "qty": "20"}], "at": "2025-07-10T08:00:00"})
+        self.assertEqual(out[0]["mode"], "produzione")
+        self.assertEqual(self.qty(farina["id"]), Dec("8"))
+        self.assertEqual(self.qty(sid), Dec("20"))
+        # 15 vendite → restano 5 pezzi; ne vengono contati 3 → ammanco di 2
+        s = self.admin.post("/sales", {"channel_id": self.channel()["id"], "sold_at": "2025-07-10T12:00:00",
+                                       "lines": [{"product_id": prod["id"], "qty": "15"}]})
+        self.assertEqual(self.qty(sid), Dec("5"))
+        self.assertEqual(self.qty(box["id"]), Dec("85"))
+        self.assertEqual(self.qty(farina["id"]), Dec("8"))          # gli ingredienti si scaricano alla produzione
+        cnt = self.admin.post("/counts", {"item_ids": [sid]})
+        self.admin.put(f"/counts/{cnt['id']}", {"lines": [{"item_id": sid, "counted_qty": "3"}]})
+        self.admin.post(f"/counts/{cnt['id']}/confirm")
+        rep = self.admin.get(f"/reports/shrinkage?from=2025-07-01&to={dt.date.today().isoformat()}")
+        r = next(x for x in rep["items"] if x["id"] == sid)
+        self.assertEqual(Dec(str(r["produced"])), Dec("20"))
+        self.assertEqual(Dec(str(r["sold"])), Dec("15"))
+        self.assertEqual(Dec(str(r["missing_qty"])), Dec("2"))
+        self.assertEqual(Dec(str(r["missing_value"])), Dec("0.40"))
+        self.assertTrue(rep["days"])
+        # il P&L conta le materie al consumo: 15 pezzi × 0,20 + 15 box × 0,10
+        pl = self.pl("2025-07-10", "2025-07-10")
+        self.assertEqual(self.line(pl, "materie_prime"), Dec("4.50"))
+        self.assertTrue(all(c["ok"] or c.get("warning") for c in pl["checks"]), pl["checks"])
+        self.admin.post(f"/sales/{s['id']}/void", {"reason": "prova"})
+        self.assertEqual(self.qty(sid), Dec("18"))
+
+    def test_collega_tutti_e_bevande(self):
+        lattina = self.item("Coca Cola lattina", unit="pz", kind="rivendita")
+        self.load(lattina["id"], 24, "0.50")
+        bib = self.admin.post("/products", {"name": f"Coca Cola {uid()}", "sale_price": "2.50", "vat_rate": "10",
+                                            "track_stock": False})
+        self.admin.post(f"/products/{bib['id']}/recipe", {"lines": [{"item_id": lattina["id"], "qty": "1", "unit_code": "pz"}]})
+        acqua = self.admin.post("/products", {"name": f"Acqua {uid()}", "sale_price": "1", "vat_rate": "10", "track_stock": False})
+        res = self.admin.post("/products/track-stock-all")
+        self.assertGreaterEqual(res["linked"], 2)
+        self.assertEqual(self.admin.get(f"/products/{bib['id']}")["stock_item_id"], lattina["id"])  # riusa la lattina esistente
+        aq = self.admin.get(f"/products/{acqua['id']}")
+        self.assertEqual(self.admin.get(f"/items/{aq['stock_item_id']}")["kind"], "rivendita")
+        # rinominando il prodotto cambia anche l'articolo creato in automatico
+        self.admin.put(f"/products/{acqua['id']}", {**{k: aq[k] for k in ("name", "sale_price", "vat_rate")}, "name": "Acqua naturale X"})
+        self.assertEqual(self.admin.get(f"/items/{aq['stock_item_id']}")["name"], "Acqua naturale X")
+        fg = self.admin.get("/finished-goods")
+        self.assertTrue(any(r["id"] == lattina["id"] for r in fg))
+        self.admin.post("/productions/batch", {"lines": [{"item_id": aq["stock_item_id"], "qty": "0"}]}, expect=422)
+
+    def test_omaggi_assaggi_dal_dipendente(self):
+        prod = self.admin.post("/products", {"name": f"Ciambella {uid()}", "sale_price": "2.00", "vat_rate": "10"})
+        sid = prod["stock_item_id"]
+        self.admin.post("/productions/batch", {"lines": [{"item_id": sid, "qty": "10"}]})
+        emp, _ = self.make_user("vendite")
+        g = emp.post("/giveaways", {"lines": [{"product_id": prod["id"], "qty": "3"}], "notes": "assaggi ai passanti"})
+        self.assertEqual(self.qty(sid), Dec("7"))
+        emp.get("/giveaways", expect=403)                       # il dipendente non vede lo storico
+        lst = self.admin.get("/giveaways")
+        self.assertEqual(lst[0]["id"], g["id"])
+        today = dt.date.today().isoformat()
+        r = next(x for x in self.admin.get(f"/reports/shrinkage?from={today}&to={today}")["items"] if x["id"] == sid)
+        self.assertEqual(Dec(str(r["given"])), Dec("3"))
+        self.assertEqual(Dec(str(r["wasted"])), Dec("0"))
+        self.admin.post(f"/giveaways/{g['id']}/void", {"reason": "prova"})
+        self.assertEqual(self.qty(sid), Dec("10"))
+
+    def test_dipendente_chiusura_cassa_alla_cieca(self):
+        emp, user_id = self.make_user("vendite")
+        u = next(x for x in self.admin.get("/users") if x["id"] == user_id)
+        self.admin.put(f"/users/{user_id}", {"email": u["email"], "full_name": u["full_name"], "role_id": u["role_id"],
+                                             "overrides": [{"permission": "sales.close_day", "granted": True}]})
+        d = "2025-08-14"
+        day = emp.get(f"/days/{d}")
+        self.assertTrue(day["blind"])
+        self.assertNotIn("received", day["by_method"][0])             # non vede quanto dovrebbe esserci
+        cash = next(m for m in day["by_method"] if m["kind"] == "contanti")
+        res = emp.post(f"/days/{d}/close", {"counted": {str(cash["method_id"]): "50"}})
+        self.assertNotIn("difference", res)
+        full = self.admin.get(f"/days/{d}")
+        self.assertEqual(Dec(str(full["closure"]["difference"])), Dec("50.00"))
+        emp.get("/sales", expect=403)
+
+    def test_collega_riusa_articolo_con_lo_stesso_nome(self):
+        nome = f"Roll Nutella {uid()}"
+        it = self.admin.post("/items", {"sku": f"R-{uid()}", "name": nome, "unit_code": "conf", "kind": "semilavorato",
+                                        "semi_mode": "esplodi", "initial_qty": "100", "initial_cost": "0.80"})
+        prod = self.admin.post("/products", {"name": nome, "sale_price": "5", "vat_rate": "10", "track_stock": False})
+        self.admin.post(f"/products/{prod['id']}/track-stock")
+        p = self.admin.get(f"/products/{prod['id']}")
+        self.assertEqual(p["stock_item_id"], it["id"])                  # nessun doppione
+        self.admin.post("/sales", {"channel_id": self.channel()["id"], "lines": [{"product_id": prod["id"], "qty": "2"}]})
+        self.assertEqual(self.qty(it["id"]), Dec("98"))

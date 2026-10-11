@@ -1,4 +1,4 @@
-/* Isa Manager — sistema visivo.
+/* Isaa Rolls Manager — sistema visivo.
    I colori del marchio sono definiti SOLO qui sotto (--brand-*): per adattare l'app ai colori aziendali basta cambiarli. */
 :root {
   --brand-pantone: #8bbfb9;  /* PANTONE 325 U – colore aziendale Isaa Rolls */
@@ -240,6 +240,7 @@ textarea.input { resize: vertical; min-height: 70px; }
 .table tr.bad td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
 .table tfoot td { font-weight: 700; border-top: 2px solid var(--line-strong); background: #fafbfc; }
 .table .sub { display: block; color: var(--muted); font-size: 12.5px; }
+.plain-table .sub { display: block; color: var(--muted); font-size: 12.5px; font-weight: 400; }
 .more { text-align: center; padding: 10px; border-top: 1px solid var(--line); }
 .plain-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .plain-table td, .plain-table th { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; }

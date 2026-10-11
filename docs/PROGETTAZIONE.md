@@ -1,4 +1,4 @@
-# Isa Manager – Documento di progettazione
+# Isaa Rolls Manager – Documento di progettazione
 
 Gestionale web per **Isaa Rolls**: magazzino, ricette, vendite, incassi, spese, fornitori, ordini, report economici.
 Usabile da browser (computer, tablet, telefono) e come app per iPhone e Android.

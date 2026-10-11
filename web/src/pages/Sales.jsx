@@ -165,6 +165,7 @@ export function DayClose({ query }) {
   const [adjust, setAdjust] = useState(true);
   const [run, busy] = useAction();
   const closure = data?.closure;
+  const blind = !!data?.blind;
   const submit = async () => {
     const c = Object.fromEntries(Object.entries(counted).map(([k, v]) => [k, F.parseNum(v)]).filter(([, v]) => v !== null && !Number.isNaN(v)));
     const ok = await run(() => api.post(`/days/${day}/close`, { counted: c, notes, adjust_cash: adjust }), "Giornata chiusa");
@@ -176,11 +177,24 @@ export function DayClose({ query }) {
   };
   return (
     <>
-      <PageHeader back={{ to: "/vendite", label: "Vendite" }} title="Chiusura di cassa"
-        sub="Confronta quanto risulta dalle vendite con quanto hai effettivamente in cassa e sul POS."
+      <PageHeader back={can("sales.view") ? { to: "/vendite", label: "Vendite" } : null} title="Chiusura di cassa"
+        sub={blind ? "Conta i contanti in cassa e controlla il totale del POS, poi scrivi gli importi." : "Confronta quanto risulta dalle vendite con quanto hai effettivamente in cassa e sul POS."}
         actions={<Input type="date" value={day} max={F.todayISO()} onChange={(e) => e.target.value && setDay(e.target.value)} style={{ width: 170 }} />} />
       <ErrorBox error={error} onRetry={reload} />
-      {loading && !data ? <Loading /> : data && (
+      {loading && !data ? <Loading /> : data && blind ? (
+        <div className="card" style={{ maxWidth: 560 }}>
+          <div className="card-head"><h2>{F.date(day)}</h2>{closure ? <Badge tone="good">Chiusa</Badge> : <Badge tone="warn">Aperta</Badge>}</div>
+          {closure ? <p>Chiusura registrata il {F.datetime(closure.closed_at)}. Il responsabile vedrà gli importi e le eventuali differenze.</p> : <>
+            <div className="stack">
+              {data.by_method.filter((m) => m.kind !== "piattaforma").map((m) => (
+                <Field key={m.method_id} label={m.kind === "contanti" ? `${m.name}: contanti contati in cassa` : `${m.name}: totale dello scontrino di chiusura`}>
+                  <NumInput value={counted[m.method_id] || ""} onChange={(v) => setCounted({ ...counted, [m.method_id]: v })} suffix="€" /></Field>))}
+              <Field label="Note"><Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Es. fondo cassa, spiegazioni" /></Field>
+              <div className="row end"><Button variant="primary" busy={busy} onClick={submit}>Chiudi la giornata</Button></div>
+            </div>
+          </>}
+        </div>
+      ) : data && (
         <div className="dash-grid" style={{ marginTop: 0 }}>
           <div className="card">
             <div className="card-head"><h2>{F.date(day)}</h2>{closure ? <Badge tone="good">Chiusa</Badge> : <Badge tone="warn">Aperta</Badge>}</div>

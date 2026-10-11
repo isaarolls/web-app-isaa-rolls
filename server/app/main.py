@@ -1,4 +1,4 @@
-"""Applicazione web Isa Manager (ASGI).
+"""Applicazione web Isaa Rolls Manager (ASGI).
 
 Avvio in sviluppo:   uvicorn app.main:app --reload
 Avvio in produzione: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
@@ -19,7 +19,7 @@ from . import config, db
 from .http import ROUTES, make_endpoint
 
 # registrazione delle rotte (import per effetto collaterale)
-from .api import auth, users, settings, inventory, products, sales, payments, expenses, purchasing, reports, io  # noqa: F401,E402
+from .api import auth, users, settings, inventory, products, sales, payments, expenses, purchasing, reports, io, giveaways  # noqa: F401,E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("isa")
@@ -97,7 +97,7 @@ def openapi(request):
         paths.setdefault(path, {})[method.lower()] = op
     return JSONResponse({
         "openapi": "3.0.3",
-        "info": {"title": "Isa Manager API", "version": "1.0.0",
+        "info": {"title": "Isaa Rolls Manager API", "version": "1.0.0",
                  "description": "API del gestionale. Autenticazione: cookie di sessione (web) oppure header "
                                 "'Authorization: Bearer <token>' (app mobile). Le richieste con cookie che modificano dati "
                                 "devono includere l'header 'X-Requested-With: IsaManager'."},
@@ -112,9 +112,9 @@ def api_docs(request):
         f"<tr><td><code>{m}</code></td><td><code>{p}</code></td><td>{(fn.__doc__ or '').strip().split(chr(10))[0]}</td>"
         f"<td><code>{perm if isinstance(perm, str) else ' / '.join(perm or []) or ('pubblica' if not a else 'utente autenticato')}</code></td></tr>"
         for m, p, fn, perm, a, _ in sorted(ROUTES, key=lambda r: (r[1], r[0])))
-    return HTMLResponse(f"""<!doctype html><meta charset=utf-8><title>Isa Manager API</title>
+    return HTMLResponse(f"""<!doctype html><meta charset=utf-8><title>Isaa Rolls Manager API</title>
 <style>body{{font:14px system-ui;margin:24px;color:#222}}table{{border-collapse:collapse;width:100%}}td,th{{border-bottom:1px solid #ddd;padding:6px;text-align:left}}code{{font-size:12px}}</style>
-<h1>Isa Manager – API</h1><p>Specifica OpenAPI: <a href="/api/openapi.json">/api/openapi.json</a>. Ogni rotta verifica il permesso indicato lato server.</p>
+<h1>Isaa Rolls Manager – API</h1><p>Specifica OpenAPI: <a href="/api/openapi.json">/api/openapi.json</a>. Ogni rotta verifica il permesso indicato lato server.</p>
 <table><tr><th>Metodo</th><th>Percorso</th><th>Descrizione</th><th>Permesso</th></tr>{rows}</table>""")
 
 

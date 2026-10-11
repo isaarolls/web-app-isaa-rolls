@@ -130,7 +130,7 @@ def forgot(ctx: Ctx):
             token = create_reset_token(c, u["id"])
             link = f"{config.PUBLIC_URL}/#/reimposta-password?token={token}"
             try:
-                sent = send_mail(u["email"], "Isa Manager – reimpostazione password",
+                sent = send_mail(u["email"], "Isaa Rolls Manager – reimpostazione password",
                                  f"Ciao {u['full_name']},\n\nper scegliere una nuova password apri questo link "
                                  f"(valido 2 ore):\n{link}\n\nSe non hai richiesto tu il ripristino, ignora questo messaggio.")
             except Exception:

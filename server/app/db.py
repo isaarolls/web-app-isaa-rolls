@@ -177,8 +177,17 @@ def tx(isolation: str | None = None) -> Iterator[Cursor]:
     """Transazione: COMMIT se il blocco termina, ROLLBACK in caso di eccezione."""
     p = pool()
     conn = p.get()
+    begin = "BEGIN" + (f" ISOLATION LEVEL {isolation}" if isolation else "")
     try:
-        conn.execute("BEGIN" + (f" ISOLATION LEVEL {isolation}" if isolation else ""))
+        conn.execute(begin)
+    except DatabaseError:
+        # connessione chiusa dal server (es. database che si sospende quando inattivo): ne apre una nuova
+        conn.close()
+        with p._lock:
+            p._created -= 1
+        conn = p.get()
+        conn.execute(begin)
+    try:
         cur = Cursor(conn)
         try:
             yield cur

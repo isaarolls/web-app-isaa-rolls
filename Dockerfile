@@ -1,4 +1,4 @@
-# Isa Manager – immagine di produzione (backend + interfaccia compilata)
+# Isaa Rolls Manager – immagine di produzione (backend + interfaccia compilata)
 
 # 1) compilazione dell'interfaccia web
 FROM node:22-alpine AS web

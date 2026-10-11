@@ -1,10 +1,10 @@
 # App per iPhone e Android
 
-L'app per telefono è l'interfaccia di Isa Manager impacchettata con **Capacitor**. Si collega al tuo server online, quindi **prima va completata la pubblicazione web** (`PUBBLICAZIONE.md`). Telefono, tablet e computer vedono gli stessi dati in tempo reale.
+L'app per telefono è l'interfaccia di Isaa Rolls Manager impacchettata con **Capacitor**. Si collega al tuo server online, quindi **prima va completata la pubblicazione web** (`PUBBLICAZIONE.md`). Telefono, tablet e computer vedono gli stessi dati in tempo reale.
 
 ## Prima di iniziare: quale distribuzione scegliere
 
-Isa Manager è un'app **ad uso interno**, accessibile solo con credenziali aziendali. Gli store pubblici accettano con difficoltà le app che servono solo ai dipendenti di un'azienda. Le strade realistiche sono:
+Isaa Rolls Manager è un'app **ad uso interno**, accessibile solo con credenziali aziendali. Gli store pubblici accettano con difficoltà le app che servono solo ai dipendenti di un'azienda. Le strade realistiche sono:
 
 | | iPhone | Android |
 |---|---|---|

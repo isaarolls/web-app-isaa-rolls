@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from .. import db
 from ..common import parse_ts
 from ..http import Ctx, api, audit, bad, conflict, not_found
-from ..services import purchasing, recipes, stock
+from ..services import finished, purchasing, recipes, stock
 
 CARD_COST_KEYS = ("materials_cost", "packaging_cost", "unit_cost", "gross_margin", "gross_margin_pct",
                   "food_cost_pct", "suggested_price", "recipe")
@@ -27,9 +27,14 @@ def list_products(ctx: Ctx):
         where.append("(p.name ILIKE %s OR p.code ILIKE %s)"); params += [f"%{ctx.q('search')}%"] * 2
     with db.read() as c:
         rows = c.all(
-            f"""SELECT p.*, pc.name AS category_name FROM products p LEFT JOIN product_categories pc ON pc.id=p.category_id
+            f"""SELECT p.*, pc.name AS category_name, si.qty_on_hand AS stock_qty, si.name AS stock_item_name,
+                      si.kind AS stock_item_kind
+                FROM products p LEFT JOIN product_categories pc ON pc.id=p.category_id LEFT JOIN items si ON si.id=p.stock_item_id
                 {'WHERE ' + ' AND '.join(where) if where else ''} ORDER BY pc.sort_order NULLS LAST, p.sort_order, p.name""",
             params)
+        if not ctx.can("inventory.view"):
+            for p in rows:
+                p.pop("stock_qty", None)
         if ctx.q("with_cost") == "1" and ctx.can("products.view"):
             for p in rows:
                 card = recipes.product_card(c, p)
@@ -41,11 +46,15 @@ def list_products(ctx: Ctx):
 @api("GET", "/products/{id}", "products.view")
 def get_product(ctx: Ctx):
     with db.read() as c:
-        p = c.one("SELECT p.*, pc.name AS category_name FROM products p LEFT JOIN product_categories pc ON pc.id=p.category_id "
-                  "WHERE p.id=%s", [ctx.pid()])
+        p = c.one("SELECT p.*, pc.name AS category_name, si.name AS stock_item_name, si.qty_on_hand AS stock_qty, "
+                  "si.kind AS stock_item_kind FROM products p LEFT JOIN product_categories pc ON pc.id=p.category_id "
+                  "LEFT JOIN items si ON si.id=p.stock_item_id WHERE p.id=%s", [ctx.pid()])
         if not p:
             raise not_found("Prodotto")
         p["card"] = _strip(ctx, recipes.product_card(c, p))
+        p["edit_recipe"] = finished.editable_recipe(c, p)
+        if not ctx.can("inventory.view"):
+            p.pop("stock_qty", None)
         p["versions"] = c.all(
             "SELECT rv.*, u.full_name AS created_by_name FROM recipe_versions rv LEFT JOIN users u ON u.id=rv.created_by "
             "WHERE product_id=%s ORDER BY version_no DESC", [p["id"]])
@@ -65,6 +74,7 @@ class ProductIn(BaseModel):
     sort_order: int = 0
     color: str | None = None
     version: int | None = None
+    track_stock: bool | None = None   # conta i pezzi pronti a magazzino (collegamento automatico)
 
 
 PFIELDS = ["code", "name", "category_id", "description", "sale_price", "vat_rate", "target_margin_pct", "unload_stock",
@@ -78,6 +88,9 @@ def create_product(ctx: Ctx):
         row = c.one(f"INSERT INTO products({','.join(PFIELDS)}) VALUES ({','.join(['%s'] * len(PFIELDS))}) RETURNING *",
                     [getattr(data, f) or (None if f == "code" else getattr(data, f)) for f in PFIELDS])
         audit(c, ctx, "create", "product", row["id"], f"Nuovo prodotto «{row['name']}»", None, row)
+        if data.track_stock is not False and data.unload_stock:
+            finished.link_product(c, ctx.uid, row["id"])
+            row = c.one("SELECT * FROM products WHERE id=%s", [row["id"]])
     return row
 
 
@@ -95,7 +108,34 @@ def update_product(ctx: Ctx):
         row = c.one(f"UPDATE products SET {sets}, updated_at=now(), version=version+1 WHERE id=%s RETURNING *",
                     [getattr(data, f) if f != "code" else (data.code or None) for f in PFIELDS] + [pid])
         audit(c, ctx, "update", "product", pid, f"Prodotto «{row['name']}» modificato", before, row)
+        if row["stock_item_id"] and row["name"] != before["name"]:
+            # il nome dell'articolo di magazzino segue quello del prodotto
+            c.exec("UPDATE items SET name=%s, updated_at=now() WHERE id=%s AND NOT EXISTS "
+                   "(SELECT 1 FROM products WHERE stock_item_id=%s AND id<>%s)", [row["name"], row["stock_item_id"],
+                                                                               row["stock_item_id"], pid])
+        if data.track_stock and not row["stock_item_id"]:
+            finished.link_product(c, ctx.uid, pid)
+            row = c.one("SELECT * FROM products WHERE id=%s", [pid])
     return row
+
+
+@api("POST", "/products/{id}/track-stock", "products.edit")
+def track_stock(ctx: Ctx):
+    with db.tx() as c:
+        item = finished.link_product(c, ctx.uid, ctx.pid())
+        audit(c, ctx, "update", "product", ctx.pid(), f"Prodotto collegato al magazzino: «{item['name']}»")
+    return item
+
+
+@api("POST", "/products/track-stock-all", "products.edit")
+def track_stock_all(ctx: Ctx):
+    """Collega in un colpo solo tutti i prodotti attivi non ancora contati a magazzino."""
+    with db.tx() as c:
+        ids = [r["id"] for r in c.all("SELECT id FROM products WHERE is_active AND stock_item_id IS NULL ORDER BY id")]
+        for pid in ids:
+            finished.link_product(c, ctx.uid, pid)
+        audit(c, ctx, "update", "product", None, f"Collegati al magazzino {len(ids)} prodotti")
+    return {"linked": len(ids)}
 
 
 class RecipeIn(BaseModel):
@@ -113,8 +153,7 @@ def save_product_recipe(ctx: Ctx):
         p = c.one("SELECT * FROM products WHERE id=%s", [pid])
         if not p:
             raise not_found("Prodotto")
-        vid = recipes.save_version(c, ctx.uid, product_id=pid, item_id=None, lines_in=data.lines,
-                                   yield_qty=data.yield_qty, notes=data.notes, valid_from=parse_ts(data.valid_from))
+        vid = finished.save_product_recipe(c, ctx.uid, p, data.lines, data.yield_qty, data.notes, parse_ts(data.valid_from))
         card = recipes.product_card(c, p)
         audit(c, ctx, "create", "recipe", vid, f"Nuova versione ricetta «{p['name']}»", None,
               {"lines": data.lines, "unit_cost": card["unit_cost"]})
@@ -219,3 +258,44 @@ def void_production(ctx: Ctx):
         c.exec("UPDATE productions SET voided_at=now(), voided_by=%s, void_reason=%s WHERE id=%s", [ctx.uid, reason, p["id"]])
         audit(c, ctx, "void", "production", p["id"], f"Produzione annullata: {reason}")
     return {"ok": True}
+
+
+class BatchIn(BaseModel):
+    lines: list[dict]
+    at: str | None = None
+    notes: str | None = None
+
+
+@api("POST", "/productions/batch", "production.create")
+def production_batch(ctx: Ctx):
+    """Produzione del giorno di più prodotti pronti in un colpo solo."""
+    data = ctx.parse(BatchIn)
+    with db.tx() as c:
+        out = finished.produce_batch(c, ctx.uid, data.lines, data.at, data.notes)
+        audit(c, ctx, "create", "production", None,
+              "Produzione del giorno: " + ", ".join(f"{r['name']} {r['qty']:g}" for r in out))
+    if not ctx.can("inventory.costs"):
+        for r in out:
+            r.pop("cost", None)
+    return out
+
+
+@api("GET", "/finished-goods", "inventory.view")
+def finished_goods(ctx: Ctx):
+    """Prodotti pronti contati a magazzino, con la giacenza attuale e quanto venduto oggi."""
+    with db.read() as c:
+        rows = c.all(
+            """SELECT i.id, i.name, i.kind, i.unit_code, i.qty_on_hand, i.avg_cost,
+                      (SELECT string_agg(p.name, ', ') FROM products p WHERE p.stock_item_id=i.id) AS products,
+                      EXISTS (SELECT 1 FROM recipe_versions rv WHERE rv.item_id=i.id) AS has_recipe,
+                      COALESCE((SELECT -sum(m.qty) FROM stock_movements m WHERE m.item_id=i.id AND m.type='consumo_vendita'
+                                AND (m.at AT TIME ZONE 'Europe/Rome')::date = (now() AT TIME ZONE 'Europe/Rome')::date),0) AS sold_today,
+                      COALESCE((SELECT sum(m.qty) FROM stock_movements m WHERE m.item_id=i.id
+                                AND m.type IN ('produzione_carico','carico','acquisto')
+                                AND (m.at AT TIME ZONE 'Europe/Rome')::date = (now() AT TIME ZONE 'Europe/Rome')::date),0) AS made_today
+               FROM items i WHERE i.id IN (SELECT stock_item_id FROM products WHERE stock_item_id IS NOT NULL) AND i.is_active
+               ORDER BY i.kind DESC, i.name""")
+        if not ctx.can("inventory.costs"):
+            for r in rows:
+                r.pop("avg_cost", None)
+        return rows

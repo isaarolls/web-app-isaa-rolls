@@ -1,11 +1,12 @@
-# Pubblicazione online di Isa Manager
+# Pubblicazione online di Isaa Rolls Manager
 
 Questa guida porta il gestionale su un indirizzo web tuo, ad esempio `https://gestionale.isaarolls.it`, con HTTPS e backup automatici.
 Tutto il necessario è già pronto nel progetto: `Dockerfile`, `render.yaml`, migrazioni del database e workflow di backup.
 **I passaggi segnati con 👤 richiedono il tuo intervento**, perché servono account, pagamenti o accesso al dominio che io non posso usare.
 
 Tempo stimato: circa 45 minuti la prima volta.
-Costo indicativo: 15–25 € al mese su Render (servizio web sempre acceso + database a pagamento con backup). Verifica i prezzi aggiornati su render.com/pricing.
+Costo: circa **7 $ al mese** (servizio web Render sempre acceso). Il database PostgreSQL è sul **piano gratuito di Neon**: 1 GB, permanente, senza carta di credito.
+Verifica i prezzi aggiornati su render.com/pricing e neon.com/pricing.
 
 ---
 
@@ -18,12 +19,19 @@ Costo indicativo: 15–25 € al mese su Render (servizio web sempre acceso + da
 
 Non caricare file `.env` o password: il file `.gitignore` li esclude già.
 
-## 2. 👤 Crea database e servizio su Render
+## 2a. 👤 Crea il database gratuito su Neon
+1. Crea un account su <https://neon.com> (va bene «Sign up with GitHub»).
+2. Crea un progetto con questi dati:
+   - nome: `isa-manager`;
+   - versione: Postgres 17;
+   - regione: **AWS Europe Central (Frankfurt)**.
+3. Nella pagina del progetto premi **Connect** e copia la *connection string*. Inizia con `postgresql://` e finisce con `?sslmode=require`. Ti servirà al passo successivo.
+
+## 2b. 👤 Crea il servizio su Render
 1. Crea un account su <https://render.com> e collega GitHub.
-2. Vai su **New → Blueprint**, scegli il repository `isa-manager` e conferma. Render legge `render.yaml` e crea:
-   - il database PostgreSQL `isa-manager-db`, a Francoforte;
-   - il servizio web `isa-manager`, che compila l'interfaccia e avvia il server.
+2. Vai su **New → Blueprint**, scegli il repository e conferma. Render legge `render.yaml` e crea il servizio web `isa-manager`, che compila l'interfaccia e avvia il server.
 3. Quando lo chiede, compila le variabili:
+   - `DATABASE_URL`: incolla la connection string di Neon.
    - `PUBLIC_URL`: l'indirizzo finale, ad esempio `https://gestionale.isaarolls.it`. All'inizio va bene `https://isa-manager.onrender.com`.
    - `SMTP_*`: facoltativi, per le e-mail di recupero password (vedi punto 6). Puoi lasciarli vuoti.
 4. Aspetta che il deploy sia «Live», circa 5–8 minuti. Le tabelle del database vengono create automaticamente al primo avvio.
@@ -50,12 +58,12 @@ I backup sono su tre livelli:
 
 | Livello | Cosa fa | Dove |
 |---|---|---|
-| Render PITR | Ripristino a un qualsiasi istante degli ultimi 3 giorni (7 con piano Pro) | Render → database → *Recovery* |
-| Esportazioni Render | Copia giornaliera scaricabile, conservata 7 giorni | Render → database → *Recovery* |
-| **Backup notturno su GitHub** | `pg_dump` completo ogni notte, conservato 90 giorni, indipendente da Render | GitHub → *Actions* → *Backup database* |
+| Neon (gratuito) | Ripristino a un qualsiasi istante delle ultime 6 ore | Neon → progetto → *Restore* |
+| **Backup notturno su GitHub** (fondamentale) | `pg_dump` completo ogni notte, conservato 90 giorni | GitHub → *Actions* → *Backup database* |
+| Esportazione dall'app | Excel con tutti i dati, quando vuoi | Impostazioni → Esporta e backup |
 
 👤 Per attivare il backup su GitHub:
-1. Su Render apri il database → **Connections** → copia l'**External Database URL**.
+1. Copia la connection string di Neon, la stessa usata per `DATABASE_URL`.
 2. Su GitHub apri il repository → **Settings → Secrets and variables → Actions → New repository secret**:
    - nome: `PROD_DATABASE_URL`
    - valore: l'URL copiato.
@@ -64,10 +72,10 @@ I backup sono su tre livelli:
 Gli **allegati** (fatture PDF, foto) sono salvati nel database, quindi sono inclusi in tutti i backup.
 
 ### Ripristino
-- **Errore recente** (cancellazioni, importazioni sbagliate): Render → database → Recovery → *Restore to point in time*. Render crea un nuovo database ripristinato: collega il servizio web al nuovo database (variabile `DATABASE_URL`) dopo averlo controllato.
+- **Errore delle ultime ore** (cancellazioni, importazioni sbagliate): Neon → progetto → *Restore*. Scegli l'istante precedente all'errore.
 - **Da un backup di GitHub** (da un computer con PostgreSQL client installato):
   ```
-  DATABASE_URL="<External Database URL>" ./server/scripts/restore.sh isa-manager-AAAA-MM-GG.dump
+  DATABASE_URL="<connection string Neon>" ./server/scripts/restore.sh isa-manager-AAAA-MM-GG.dump
   ```
   Lo script chiede di scrivere `RIPRISTINA` per confermare.
 - **Prova di ripristino consigliata**: una volta ogni 3 mesi ripristina un backup su un database di prova e controlla i report.
@@ -94,6 +102,11 @@ Ogni modifica caricata sul ramo principale del repository viene pubblicata autom
 ## 9. Riepilogo dei segreti (nessuno è nel codice)
 | Variabile | Dove si imposta |
 |---|---|
-| `DATABASE_URL` | automatica da Render |
+| `DATABASE_URL` | Render → servizio → Environment (connection string di Neon) |
 | `PUBLIC_URL`, `SMTP_*` | Render → servizio → Environment |
 | `PROD_DATABASE_URL` | GitHub → Settings → Secrets (solo per il backup) |
+
+## 10. Quando servirà più spazio
+Il piano gratuito di Neon ha 1 GB: basta per anni di vendite e spese, ma le foto delle fatture lo riempiono più in fretta. Neon avvisa quando ci si avvicina al limite. A quel punto hai due strade:
+- passare al piano a consumo di Neon, senza canone fisso;
+- creare un database su Render (circa 6 $ al mese), ripristinarci l'ultimo backup con `restore.sh` e cambiare `DATABASE_URL`.

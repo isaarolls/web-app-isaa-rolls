@@ -84,6 +84,14 @@ export function Pos() {
     }
   };
 
+  const gift = mode === "omaggio";
+  const submitGift = async () => {
+    const body = { lines: cart.map((x) => ({ product_id: x.product.id, qty: String(x.qty) })), notes: notes || null };
+    if (when) body.at = when;
+    const r = await run(() => api.post("/giveaways", body));
+    if (r) { toast(`Omaggio registrato: ${r.summary}`, "ok"); reset(); }
+  };
+
   if (prods.loading || look.loading) return <Loading />;
   const canSubmit = total > 0 && channel && (mode === "riepilogo" || cart.length) &&
     (!split || Math.abs(splitSum - total) < 0.005) && (split || method);
@@ -92,13 +100,13 @@ export function Pos() {
     <aside className={`cart ${open ? "open" : ""}`} aria-label="Scontrino in corso">
       <div className="cart-head">
         <div className="row between">
-          <h2>{mode === "analitica" ? "Scontrino" : "Incasso giornaliero"}</h2>
+          <h2>{gift ? "Omaggi e assaggi" : mode === "analitica" ? "Scontrino" : "Incasso giornaliero"}</h2>
           <button className="btn btn-ghost btn-sm only-mobile" onClick={() => setOpen(false)}>Chiudi</button>
         </div>
-        <div className={canBackdate ? "grid g2" : ""}>
-          <Field label="Canale">
+        <div className={canBackdate && !gift ? "grid g2" : ""}>
+          {!gift && <Field label="Canale">
             <Select value={channel} onChange={setChannel} options={channels.map((c) => ({ value: String(c.id), label: c.name }))} />
-          </Field>
+          </Field>}
           {canBackdate && (
             <Field label="Data e ora" hint={when ? null : "Adesso"}>
               <Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} max={F.nowLocalInput()} />
@@ -106,18 +114,18 @@ export function Pos() {
           )}
         </div>
       </div>
-      {mode === "analitica" ? (
+      {mode !== "riepilogo" ? (
         <div className="cart-lines">
-          {cart.length === 0 && <p className="muted" style={{ padding: 12 }}>Tocca un prodotto per aggiungerlo.</p>}
+          {cart.length === 0 && <p className="muted" style={{ padding: 12 }}>{gift ? "Tocca i prodotti che hai regalato da assaggiare." : "Tocca un prodotto per aggiungerlo."}</p>}
           {cart.map((x) => (
             <div className="cart-line" key={x.product.id}>
-              <span className="nm">{x.product.name}<small>{F.eur(x.price)} cad.</small></span>
+              <span className="nm">{x.product.name}<small>{gift ? "gratis" : `${F.eur(x.price)} cad.`}</small></span>
               <span className="qty-ctl">
                 <button onClick={() => setQty(x.product.id, x.qty - 1)} aria-label="Togli uno">{x.qty === 1 ? <LuTrash2 /> : <LuMinus />}</button>
                 <span>{x.qty}</span>
                 <button onClick={() => setQty(x.product.id, x.qty + 1)} aria-label="Aggiungi uno"><LuPlus /></button>
               </span>
-              <span className="tabular" style={{ minWidth: 64, textAlign: "right", fontWeight: 600 }}>{F.eur(x.qty * x.price)}</span>
+              <span className="tabular" style={{ minWidth: 64, textAlign: "right", fontWeight: 600 }}>{F.eur(gift ? 0 : x.qty * x.price)}</span>
             </div>
           ))}
         </div>
@@ -131,6 +139,14 @@ export function Pos() {
           </div>
         </div>
       )}
+      {gift ? (
+        <div className="cart-foot">
+          <Field label="Nota (facoltativa)"><Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Es. assaggi ai passanti" /></Field>
+          <span className="small muted">Prezzo 0 €: i pezzi escono dal magazzino e il loro costo resta registrato come omaggio.</span>
+          <div className="cart-total"><span className="muted">Totale</span><b>{F.eur(0)}</b></div>
+          <Button variant="primary" size="lg" busy={busy} disabled={!cart.length} onClick={submitGift}>Registra omaggio</Button>
+        </div>
+      ) : (
       <div className="cart-foot">
         {mode === "analitica" && !extra && !disc && !notes && (
           <button className="btn btn-ghost btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => setExtra(true)}>Aggiungi sconto o nota</button>
@@ -164,20 +180,22 @@ export function Pos() {
         <div className="cart-total"><span className="muted">Totale</span><b>{F.eur(total)}</b></div>
         <Button variant="primary" size="lg" busy={busy} disabled={!canSubmit} onClick={submit}>Registra vendita</Button>
       </div>
+      )}
     </aside>
   );
 
   return (
     <>
       <PageHeader title="Vendi" actions={
-        <Tabs value={mode} onChange={(m) => { setMode(m); }} tabs={[
-          { value: "analitica", label: "Per prodotto" }, { value: "riepilogo", label: "Totale giornaliero" }]} />
+        <Tabs value={mode} onChange={(m) => { if ((m === "omaggio") !== gift) reset(); setMode(m); }} tabs={[
+          { value: "analitica", label: "Per prodotto" }, { value: "omaggio", label: "Omaggio / assaggio" }, { value: "riepilogo", label: "Totale giornaliero" }]} />
       } />
       <ErrorBox error={prods.error || look.error} />
       <div className="pos-layout">
         <div>
-          {mode === "analitica" ? (
+          {mode !== "riepilogo" ? (
             <>
+              {gift && <Notice tone="info">Seleziona i roll o le ciambelle regalati da assaggiare: non si incassa nulla, ma la giacenza scende.</Notice>}
               <div className="pos-cats">
                 {cats.map((c) => <button key={c} className={cat === c ? "on" : ""} onClick={() => setCat(c)}>{c === "tutti" ? "Tutti" : c}</button>)}
               </div>
@@ -190,7 +208,7 @@ export function Pos() {
                       style={{ "--tile": p.color || TILE_COLORS[catIndex(p.category_name) % TILE_COLORS.length] }}>
                       {qtyOf(p.id) > 0 && <span className="qty-badge">{qtyOf(p.id)}</span>}
                       <b>{p.name}</b>
-                      <span className="price">{F.eur(p.sale_price)}</span>
+                      <span className="price">{gift ? "gratis" : F.eur(p.sale_price)}</span>
                     </button>
                   ))}
                 </div>
@@ -205,8 +223,8 @@ export function Pos() {
       </div>
       {(cart.length > 0 || mode === "riepilogo") && !open && (
         <button className="mobile-cart-bar" onClick={() => setOpen(true)}>
-          <span><LuChevronUp /> {mode === "analitica" ? `${cart.reduce((s, x) => s + x.qty, 0)} articoli` : "Incasso giornaliero"}</span>
-          <b>{F.eur(total)}</b>
+          <span><LuChevronUp /> {mode === "riepilogo" ? "Incasso giornaliero" : `${cart.reduce((s, x) => s + x.qty, 0)} ${gift ? "in omaggio" : "articoli"}`}</span>
+          <b>{F.eur(gift ? 0 : total)}</b>
         </button>
       )}
     </>

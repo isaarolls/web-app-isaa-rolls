@@ -403,3 +403,22 @@ def pl_pdf(ctx: Ctx):
     content = exporting.pl_to_pdf(data)
     return Response(content, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="report-{d1}_{d2}.pdf"'})
+
+
+@api("GET", "/reports/shrinkage", "inventory.view")
+def shrinkage_report(ctx: Ctx):
+    """Controllo ammanchi dei prodotti pronti: quanto doveva esserci e quanto è stato contato."""
+    from ..services import finished
+    d2 = ctx.qdate("to") or today()
+    d1 = ctx.qdate("from") or d2.replace(day=1)
+    with db.read() as c:
+        rows = finished.shrinkage(c, d1, d2)
+        days = finished.shrinkage_by_day(c, d1, d2)
+    if not ctx.can("inventory.costs"):
+        for r in rows:
+            for k in ("avg_cost", "count_diff_value", "missing_value"):
+                r.pop(k, None)
+        for r in days:
+            r.pop("value", None)
+    return {"from": d1, "to": d2, "items": rows, "days": days,
+            "missing_value": sum((r.get("missing_value") or 0) for r in rows) if ctx.can("inventory.costs") else None}

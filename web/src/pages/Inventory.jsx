@@ -21,7 +21,7 @@ export function compatibleUnits(units, code) {
 
 export function Inventory({ query }) {
   const { can } = useApp();
-  const [tab, setTab] = useState(query.tab || "articoli");
+  const [tab, setTab] = useState(query.tab || "pronti");
   const [newItem, setNewItem] = useState(false);
   return (
     <>
@@ -31,8 +31,9 @@ export function Inventory({ query }) {
           {can("inventory.edit") && <Button variant="primary" icon={LuPlus} onClick={() => setNewItem(true)}>Nuovo articolo</Button>}
         </>} />
       <Tabs value={tab} onChange={setTab} tabs={[
-        { value: "articoli", label: "Articoli" }, { value: "movimenti", label: "Movimenti" }, { value: "inventari", label: "Inventari fisici" },
+        { value: "pronti", label: "Pezzi pronti e ammanchi" }, { value: "articoli", label: "Articoli" }, { value: "movimenti", label: "Movimenti" }, { value: "inventari", label: "Inventari fisici" },
         { value: "produzioni", label: "Produzioni" }]} />
+      {tab === "pronti" && <FinishedGoods />}
       {tab === "articoli" && <ItemsList belowMin={query.below_min === "1"} />}
       {tab === "movimenti" && <MovementsList />}
       {tab === "inventari" && <Counts />}
@@ -447,5 +448,117 @@ export function CountPage({ params }) {
         </div>
       </div>
     </>
+  );
+}
+
+
+/** Prodotti pronti contati a magazzino: produzione del giorno, conta di fine giornata e controllo ammanchi. */
+function FinishedGoods() {
+  const { can, toast } = useApp();
+  const { data, error, loading, reload } = useData("/finished-goods");
+  const [from, to, setRange] = useRangeState("mese");
+  const rep = useData(`/reports/shrinkage${qs({ from, to })}`);
+  const gifts = useData(`/giveaways${qs({ from, to })}`);
+  const [voiding, setVoiding] = useState(null);
+  const [qty, setQty] = useState({});
+  const [run, busy] = useAction();
+  const costs = can("inventory.costs");
+  const rows = data || [];
+  const reloadAll = () => { reload(); rep.reload(); gifts.reload(); };
+  const linkAll = async () => {
+    const r = await run(() => api.post("/products/track-stock-all"));
+    if (r) { toast(`${r.linked} prodotti collegati al magazzino`, "ok"); reloadAll(); }
+  };
+  const produce = async () => {
+    const lines = rows.map((r) => ({ item_id: r.id, qty: F.parseNum(qty[r.id]) })).filter((l) => Number(l.qty) > 0);
+    if (!lines.length) { toast("Scrivi quanti pezzi hai preparato", "error"); return; }
+    const r = await run(() => api.post("/productions/batch", { lines }), "Produzione registrata");
+    if (r) { setQty({}); reloadAll(); }
+  };
+  const startCount = async () => {
+    const r = await run(() => api.post("/counts", { item_ids: rows.map((x) => x.id), notes: "Conta di fine giornata dei pezzi pronti" }));
+    if (r) navigate(`/inventario/${r.id}`);
+  };
+  if (loading && !data) return <Loading />;
+  if (error) return <ErrorBox error={error} onRetry={reload} />;
+  if (!rows.length) return (
+    <div className="card stack">
+      <h2 style={{ margin: 0 }}>I prodotti in vendita non sono ancora contati a magazzino</h2>
+      <p className="muted" style={{ margin: 0 }}>Collegandoli, ogni roll, ciambella o bibita diventa un articolo «pezzo pronto»: la produzione aggiunge pezzi,
+        ogni vendita in cassa ne toglie uno e la conta di fine giornata mostra se ne mancano.</p>
+      {can("products.edit") ? <div><Button variant="primary" busy={busy} onClick={linkAll}>Collega tutti i prodotti al magazzino</Button></div>
+        : <Notice tone="warn">Chiedi a un responsabile di collegare i prodotti dalla pagina Prodotti.</Notice>}
+    </div>
+  );
+  const items = rep.data?.items || [];
+  const totMissing = items.reduce((s, r) => s + Number(r.missing_qty || 0), 0);
+  return (
+    <div className="stack">
+      <div className="card">
+        <div className="card-head"><h2>Oggi</h2>
+          <span className="row" style={{ gap: 8 }}>
+            {can("products.edit") && <Button size="sm" variant="ghost" busy={busy} onClick={linkAll}>Collega i prodotti nuovi</Button>}
+            {can("inventory.count") && <Button size="sm" icon={LuClipboardCheck} busy={busy} onClick={startCount}>Conta di fine giornata</Button>}
+          </span></div>
+        <p className="muted small" style={{ marginTop: 0 }}>1) La mattina scrivi quanti pezzi hai preparato e premi «Registra produzione» (gli ingredienti escono dal magazzino).
+          2) Le vendite in cassa tolgono i pezzi da sole. 3) A fine giornata premi «Conta di fine giornata» e scrivi quanti pezzi sono rimasti davvero.</p>
+        <table className="plain-table">
+          <thead><tr><th>Prodotto</th><th className="r">Ci sono</th>{can("production.create") && <th className="r" style={{ width: 92 }}>Preparati ora</th>}</tr></thead>
+          <tbody>{rows.map((r) => (
+            <tr key={r.id}>
+              <td><a href={`#/magazzino/${r.id}`}>{r.name}</a>{r.kind === "semilavorato" && !r.has_recipe && <> <Badge tone="warn">senza ricetta</Badge></>}
+                <span className="sub">oggi: preparati {F.num(r.made_today)} · venduti {F.num(r.sold_today)}</span></td>
+              <td className={`r ${Number(r.qty_on_hand) < 0 ? "neg" : ""}`} style={{ whiteSpace: "nowrap" }}><b>{F.num(r.qty_on_hand)}</b> {r.unit_code}</td>
+              {can("production.create") && <td className="r"><NumInput value={qty[r.id] || ""} onChange={(v) => setQty((s) => ({ ...s, [r.id]: v }))} placeholder="0" /></td>}
+            </tr>))}</tbody>
+        </table>
+        {rows.some((r) => Number(r.qty_on_hand) < 0) && <Notice tone="warn">Alcuni prodotti sono sotto zero: sono stati venduti più pezzi di quelli registrati come preparati. Registra la produzione mancante.</Notice>}
+        {can("production.create") && <div className="row end" style={{ marginTop: 10 }}><Button variant="primary" icon={LuFactory} busy={busy} onClick={produce}>Registra produzione</Button></div>}
+      </div>
+
+      <div className="card">
+        <div className="card-head"><h2>Controllo ammanchi</h2><DateRange from={from} to={to} onChange={setRange} compact /></div>
+        <p className="muted small" style={{ marginTop: 0 }}>Pezzi che dovevano esserci = iniziali + preparati − venduti − omaggi − sprechi. Se alla conta ne trovi meno, la differenza è un <b>ammanco</b>:
+          pezzi usciti senza essere battuti in cassa (regalati, mangiati, rubati o non registrati).</p>
+        <div className="stats">
+          <div className={`stat ${totMissing > 0 ? "stat-bad" : "stat-good"}`}><span className="stat-label">Pezzi mancanti nel periodo</span><span className="stat-value">{F.num(totMissing)}</span></div>
+          {costs && <div className={`stat ${Number(rep.data?.missing_value) > 0 ? "stat-bad" : ""}`}><span className="stat-label">Valore al costo</span><span className="stat-value">{F.eur(rep.data?.missing_value)}</span></div>}
+        </div>
+        <ErrorBox error={rep.error} onRetry={rep.reload} />
+        <DataTable rows={items} empty="Nessun dato nel periodo" rowClass={(r) => (Number(r.missing_qty) > 0 ? "bad" : "")} columns={[
+          { key: "name", label: "Prodotto", render: (r) => <><b style={{ fontWeight: 600 }}>{r.name}</b><span className="sub">{r.last_count ? `ultima conta ${F.datetime(r.last_count)}` : "mai contato"}</span></> },
+          { key: "opening", label: "Iniziali", align: "right", render: (r) => F.num(r.opening) },
+          { key: "produced", label: "Preparati", align: "right", render: (r) => F.num(r.produced) },
+          { key: "sold", label: "Venduti", align: "right", render: (r) => F.num(r.sold) },
+          { key: "given", label: "Omaggi", align: "right", render: (r) => F.num(r.given) },
+          { key: "wasted", label: "Sprechi", align: "right", render: (r) => F.num(r.wasted) },
+          { key: "missing_qty", label: "Mancanti", align: "right", sortValue: (r) => Number(r.missing_qty),
+            render: (r) => Number(r.missing_qty) ? <b className="neg">{F.num(r.missing_qty)} <span className="sub">{F.pct(r.missing_pct)} dei pezzi usciti</span></b>
+              : Number(r.surplus_qty) ? <span>+{F.num(r.surplus_qty)} in più</span> : "0" },
+          costs && { key: "missing_value", label: "Valore", type: "money" },
+          { key: "closing", label: "Restano (teorici)", align: "right", render: (r) => F.num(r.closing) },
+        ].filter(Boolean)} />
+        {(rep.data?.days || []).length > 0 && <>
+          <h3 style={{ marginTop: 16 }}>Differenze trovate alle conte</h3>
+          <ul className="list-plain">{rep.data.days.map((d, i) => (
+            <li key={i}><span>{F.date(d.day)} · {d.name}{d.counted_by ? <span className="muted small"> · contato da {d.counted_by}</span> : null}</span>
+              <span className={Number(d.diff) < 0 ? "neg" : ""}>{Number(d.diff) > 0 ? "+" : ""}{F.num(d.diff)} pz{costs && d.value !== undefined ? ` · ${F.eur(d.value)}` : ""}</span></li>))}</ul>
+        </>}
+      </div>
+
+      <div className="card">
+        <div className="card-head"><h2>Omaggi e assaggi</h2></div>
+        <p className="muted small" style={{ marginTop: 0 }}>Registrati dalla cassa con «Omaggio / assaggio»: prezzo 0 €, i pezzi escono dal magazzino.</p>
+        <DataTable rows={gifts.data || []} empty="Nessun omaggio nel periodo" rowClass={(r) => (r.voided_at ? "muted" : "")} columns={[
+          { key: "given_at", label: "Quando", type: "datetime" },
+          { key: "summary", label: "Cosa", render: (r) => <>{r.summary}{r.notes && <span className="sub">{r.notes}</span>}{r.voided_at && <span className="sub">annullato: {r.void_reason}</span>}</> },
+          { key: "user_name", label: "Chi" },
+          costs && { key: "cost_total", label: "Costo", type: "money" },
+          can("sales.void") && { key: "x", label: "", sortable: false, render: (r) => !r.voided_at && <Button size="sm" variant="ghost" onClick={() => setVoiding(r)}>Annulla</Button> },
+        ].filter(Boolean)} />
+      </div>
+      {voiding && <ReasonModal title="Annulla omaggio" onClose={() => setVoiding(null)}
+        onConfirm={async (reason) => { await api.post(`/giveaways/${voiding.id}/void`, { reason }); setVoiding(null); toast("Omaggio annullato", "ok"); reloadAll(); }} />}
+    </div>
   );
 }

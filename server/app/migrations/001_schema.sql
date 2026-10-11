@@ -1,4 +1,4 @@
--- Isa Manager — schema iniziale
+-- Isaa Rolls Manager — schema iniziale
 -- Convenzioni:
 --   importi in euro NUMERIC(14,2); quantità NUMERIC(14,4); costi unitari NUMERIC(16,6)
 --   le date/ore sono timestamptz; il fuso dell'attività è Europe/Rome
