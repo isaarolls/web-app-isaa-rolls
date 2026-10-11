@@ -1,0 +1,25 @@
+{
+  "name": "isa-manager-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "cap:sync": "node build.mjs && npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-icons": "^5.5.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  }
+}

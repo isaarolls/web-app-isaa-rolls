@@ -1,0 +1,8 @@
+{
+  "appId": "it.isaarolls.manager",
+  "appName": "Isa Manager",
+  "webDir": "dist",
+  "backgroundColor": "#183533",
+  "ios": { "contentInset": "always" },
+  "android": { "allowMixedContent": false }
+}

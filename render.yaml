@@ -1,0 +1,41 @@
+# Blueprint Render: crea database PostgreSQL + servizio web con un clic.
+# Render → New → Blueprint → seleziona il repository GitHub che contiene questo file.
+databases:
+  - name: isa-manager-db
+    databaseName: isa_manager
+    user: isa_manager
+    plan: 0.1c-256mb           # a pagamento: ripristino a un istante (PITR) ed esportazioni giornaliere
+    region: frankfurt
+    postgresMajorVersion: "17"
+
+services:
+  - type: web
+    name: isa-manager
+    runtime: docker
+    plan: 0.5c-512mb           # sempre acceso (il piano gratuito va in pausa quando non è usato)
+    region: frankfurt
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: isa-manager-db
+          property: connectionString
+      - key: PUBLIC_URL
+        sync: false            # es. https://gestionale.isaarolls.it (da inserire nel pannello)
+      - key: CORS_ORIGINS
+        value: capacitor://localhost,https://localhost,http://localhost
+      - key: TZ
+        value: Europe/Rome
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
