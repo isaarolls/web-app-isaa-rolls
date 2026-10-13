@@ -1,0 +1,29 @@
+# MA.GI. RENT
+Options -Indexes
+DirectoryIndex index.html
+
+# Sempre su https
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Indirizzo breve del gestionale: www.magirent.com/gestionale
+RewriteRule ^gestionale/$ /gestionale [L,R=301]
+RewriteCond %{THE_REQUEST} \s/gestionale\.html[\s?]
+RewriteRule ^gestionale\.html$ /gestionale [L,R=301]
+RewriteRule ^gestionale$ gestionale.html [L]
+</IfModule>
+
+# File privati mai accessibili dal web
+<FilesMatch "\.(sqlite|sqlite-journal|sqlite-wal|sqlite-shm|bin|json|md)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
