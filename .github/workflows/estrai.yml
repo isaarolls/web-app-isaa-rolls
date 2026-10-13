@@ -12,26 +12,33 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Estrai gli zip caricati
+      - name: Estrai l'aggiornamento del gestionale
         run: |
           set -e
           shopt -s nullglob
           list=""
           for f in *.zip; do list="$list$(git log -1 --format=%ct -- "$f") $f"$'\n'; done
           if [ -z "$list" ]; then echo "Nessuno zip da estrarre"; exit 0; fi
-          printf '%s' "$list" | sort -n | cut -d' ' -f2- > /tmp/zips.txt
+          printf '%s' "$list" | sort -rn | cut -d' ' -f2- > /tmp/zips.txt
+          good=""
           while IFS= read -r z; do
             [ -n "$z" ] || continue
-            echo "Estraggo: $z"
-            rm -rf /tmp/x && mkdir /tmp/x
-            unzip -q -o "$z" -d /tmp/x
-            src=/tmp/x
-            if [ ! -f /tmp/x/Dockerfile ] && [ "$(ls -A /tmp/x | wc -l)" -eq 1 ]; then src="/tmp/x/$(ls -A /tmp/x)"; fi
-            rm -rf "$src/.github" "$src/__MACOSX"
-            cp -a "$src/." .
-            git rm -q --cached -- "$z" || true
-            rm -f -- "$z"
+            rm -rf "/tmp/x/$z" && mkdir -p "/tmp/x/$z"
+            unzip -q -o "$z" -d "/tmp/x/$z" || { echo "Zip danneggiato: $z"; continue; }
+            src="/tmp/x/$z"
+            if [ ! -f "$src/Dockerfile" ] && [ "$(ls -A "$src" | wc -l)" -eq 1 ]; then src="$src/$(ls -A "$src")"; fi
+            if [ -f "$src/server/app/main.py" ] && [ -f "$src/Dockerfile" ] && [ -z "$good" ]; then
+              good="$src"; echo "Aggiornamento del gestionale: $z"
+            else
+              echo "IGNORATO (non è l'aggiornamento del gestionale o non è il più recente): $z"
+            fi
           done < /tmp/zips.txt
+          for f in *.zip; do git rm -q --cached -- "$f" || true; rm -f -- "$f"; done
+          if [ -n "$good" ]; then
+            rm -rf "$good/.github" "$good/__MACOSX"
+            find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
+            cp -a "$good/." ./
+          fi
           git config user.name "estrai-bot"
           git config user.email "estrai-bot@users.noreply.github.com"
           git add -A
