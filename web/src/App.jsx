@@ -73,6 +73,23 @@ export default function App() {
   const loadMe = useCallback(() => api.get("/auth/me").then(setMe, () => setMe(null)), []);
   useEffect(() => { loadMe(); setUnauthorizedHandler(() => setMe(null)); }, [loadMe]);
   useEffect(() => { setMenuOpen(false); window.scrollTo(0, 0); }, [route.path]);
+  // aggiornamento automatico: se è stata pubblicata una nuova versione, la carica
+  const [newVersion, setNewVersion] = useState(false);
+  useEffect(() => {
+    const mine = (document.querySelector('script[src*="app.js"]')?.getAttribute("src") || "").split("v=")[1];
+    if (!mine) return;
+    const check = async (reloadNow) => {
+      try {
+        const html = await (await fetch("index.html", { cache: "no-store" })).text();
+        const live = (html.match(/app\.js\?v=([0-9a-f]+)/) || [])[1];
+        if (live && live !== mine) { if (reloadNow) window.location.reload(); else setNewVersion(true); }
+      } catch { /* offline: riprova più tardi */ }
+    };
+    const onVis = () => { if (document.visibilityState === "visible") check(true); };
+    document.addEventListener("visibilitychange", onVis);
+    const t = setInterval(() => check(false), 5 * 60 * 1000);
+    return () => { document.removeEventListener("visibilitychange", onVis); clearInterval(t); };
+  }, []);
 
   const toast = useCallback((msg, type = "info", details) => {
     const id = ++tid.current;
@@ -135,6 +152,7 @@ export default function App() {
         </aside>
         {menuOpen && <div className="side-backdrop" onClick={() => setMenuOpen(false)} />}
         <div style={{ minWidth: 0 }}>
+          {newVersion && <button className="update-bar" onClick={() => window.location.reload()}>È disponibile una nuova versione dell'app: tocca qui per aggiornare</button>}
           <header className="mobile-top">
             <button onClick={() => setMenuOpen(true)} aria-label="Apri menu"><LuMenu /></button>
             <b>Isaa Rolls Manager</b>

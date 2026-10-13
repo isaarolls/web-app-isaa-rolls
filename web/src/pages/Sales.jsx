@@ -13,9 +13,18 @@ export function SalesList() {
   const [status, setStatus] = useState("");
   const look = useData("/lookups");
   const { data, error, loading, reload } = useData(`/sales${qs({ from, to, channel_id: channel, status, limit: 3000 })}`);
-  const rows = data || [];
-  const valid = rows.filter((r) => r.status === "valida");
+  const gifts = useData(`/giveaways${qs({ from, to })}`);
+  const [gift, setGift] = useState(null);
+  const sales = data || [];
+  const valid = sales.filter((r) => r.status === "valida");
   const tot = valid.reduce((s, r) => s + Number(r.gross_total), 0);
+  // omaggi e assaggi: compaiono nell'elenco come righe a 0 €
+  const giftRows = channel ? [] : (gifts.data || []).map((g) => ({
+    ...g, _gift: true, id: `g${g.id}`, gid: g.id, number: "", sold_at: g.given_at, items_text: g.summary, channel_name: "Omaggio / assaggio",
+    methods_text: "Gratis", pending_amount: 0, discount_total: null, gross_total: 0, status: g.voided_at ? "annullata" : "valida",
+  })).filter((g) => !status || g.status === status);
+  const rows = [...sales, ...giftRows].sort((a, b) => String(b.sold_at).localeCompare(String(a.sold_at)));
+  const giftPieces = giftRows.filter((g) => g.status === "valida").reduce((s, g) => s + Number(g.pieces || 0), 0);
   return (
     <>
       <PageHeader title="Vendite" sub="Ogni vendita registrata, con canale, pagamento e stato."
@@ -30,17 +39,17 @@ export function SalesList() {
         <span style={{ width: 160 }}><Select value={status} onChange={setStatus} placeholder="Tutti gli stati"
           options={[{ value: "valida", label: "Valide" }, { value: "annullata", label: "Annullate" }]} /></span>
         <span className="spacer" />
-        <b className="tabular">{valid.length} vendite · {F.eur(tot)}</b>
+        <b className="tabular">{valid.length} vendite · {F.eur(tot)}{giftPieces > 0 && <span style={{ color: "var(--logo-pink, #e0409a)" }}> · {F.num(giftPieces)} pezzi in omaggio</span>}</b>
       </div>
       <ErrorBox error={error} onRetry={reload} />
       {loading && !data ? <Loading /> : (
-        <DataTable rows={rows} onRowClick={(r) => navigate(`/vendite/${r.id}`)} rowClass={(r) => (r.status === "annullata" ? "voided" : "")}
+        <DataTable rows={rows} onRowClick={(r) => (r._gift ? setGift(r) : navigate(`/vendite/${r.id}`))} rowClass={(r) => (r.status === "annullata" ? "voided" : "")}
           empty="Nessuna vendita nel periodo"
           columns={[
             { key: "number", label: "N.", width: 70 },
             { key: "sold_at", label: "Data e ora", type: "datetime" },
             { key: "items_text", label: "Prodotti", render: (r) => (
-              <span>{r.items_text}{r.kind === "rimborso" && <> <Badge tone="warn">Rimborso</Badge></>}
+              <span>{r._gift && <><Badge tone="info">Omaggio</Badge> </>}{r.items_text}{r._gift && r.notes && <span className="sub">{r.notes}</span>}{r.kind === "rimborso" && <> <Badge tone="warn">Rimborso</Badge></>}
                 {r.mode === "riepilogo" && r.kind === "vendita" && <> <Badge tone="info">Totale giornaliero</Badge></>}</span>) },
             { key: "channel_name", label: "Canale" },
             { key: "methods_text", label: "Pagamento", render: (r) => <>{r.methods_text}{Number(r.pending_amount) !== 0 && <> <Badge tone="warn">Da incassare</Badge></>}</> },
@@ -50,7 +59,28 @@ export function SalesList() {
             { key: "status", label: "Stato", render: (r) => r.status === "annullata" ? <Badge tone="bad">Annullata</Badge> : <Badge tone="good">Valida</Badge> },
           ]} />
       )}
+      {gift && <GiftModal gift={gift} onClose={() => setGift(null)} onChanged={() => { setGift(null); gifts.reload(); }} />}
     </>
+  );
+}
+
+function GiftModal({ gift, onClose, onChanged }) {
+  const { can, toast } = useApp();
+  const [voiding, setVoiding] = useState(false);
+  return (
+    <Modal title="Omaggio / assaggio" onClose={onClose}
+      footer={<>{can("sales.void") && !gift.voided_at && <Button variant="danger" onClick={() => setVoiding(true)}>Annulla omaggio</Button>}<Button onClick={onClose}>Chiudi</Button></>}>
+      <div className="stack">
+        <p style={{ margin: 0 }}><b>{gift.summary}</b></p>
+        <p className="muted" style={{ margin: 0 }}>{F.datetime(gift.given_at)} · {gift.user_name || "—"}</p>
+        {gift.notes && <p style={{ margin: 0 }}>Nota: {gift.notes}</p>}
+        <p style={{ margin: 0 }}>Incasso: <b>0,00 €</b>{gift.cost_total !== undefined && <> · costo dei prodotti regalati: <b>{F.eur(gift.cost_total)}</b></>}</p>
+        <p className="small muted" style={{ margin: 0 }}>I pezzi sono già stati tolti dal magazzino.</p>
+        {gift.voided_at && <Notice tone="warn">Annullato: {gift.void_reason}</Notice>}
+      </div>
+      {voiding && <ReasonModal title="Annulla omaggio" onClose={() => setVoiding(false)}
+        onConfirm={async (reason) => { await api.post(`/giveaways/${gift.gid}/void`, { reason }); toast("Omaggio annullato: i pezzi tornano in magazzino", "ok"); onChanged(); }} />}
+    </Modal>
   );
 }
 

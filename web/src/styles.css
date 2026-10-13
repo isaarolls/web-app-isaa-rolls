@@ -414,3 +414,4 @@ textarea.input { resize: vertical; min-height: 70px; }
 .chart-tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
 .check-list svg { font-size: 19px; flex: none; margin-top: 2px; }
 .lines-editor .select-wrap { min-width: 84px; }
+.update-bar { display: block; width: 100%; border: 0; padding: 10px 14px; background: var(--logo-yellow, #ffd400); color: #1b2a29; font-weight: 600; font-size: 14px; text-align: center; cursor: pointer; }
