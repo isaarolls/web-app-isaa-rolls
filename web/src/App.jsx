@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuLayoutDashboard, LuShoppingBag, LuReceipt, LuWallet, LuPackage, LuCookie, LuCreditCard, LuTruck,
-  LuClipboardList, LuChartColumn, LuUsers, LuSettings, LuLogOut, LuMenu, LuEllipsis, LuKeyRound, LuLock,
+  LuClipboardList, LuChartColumn, LuUsers, LuSettings, LuLogOut, LuMenu, LuEllipsis, LuKeyRound, LuLock, LuBike, LuPartyPopper,
 } from "react-icons/lu";
 import { api, setToken, setUnauthorizedHandler } from "./api.js";
 import { AppCtx, Toasts, useRoute, navigate, Loading, Link } from "./ui.jsx";
@@ -18,6 +18,7 @@ import { Suppliers, SupplierDetail } from "./pages/Suppliers.jsx";
 import { Orders, OrderDetail, ReceiveGoods } from "./pages/Orders.jsx";
 import { Reports } from "./pages/Reports.jsx";
 import { Users } from "./pages/Users.jsx";
+import { BikeLocation, EventRequests } from "./pages/Site.jsx";
 import { Settings } from "./pages/Settings.jsx";
 
 const NAV = [
@@ -35,6 +36,9 @@ const NAV = [
   { to: "/ordini", label: "Ordini", icon: LuClipboardList, perm: "purchasing.view" },
   { group: "Analisi" },
   { to: "/report", label: "Report mensili", icon: LuChartColumn, perm: "reports.view" },
+  { group: "Sito e bici" },
+  { to: "/bici", label: "Posizione bici", icon: LuBike, perm: "location.share" },
+  { to: "/eventi", label: "Richieste eventi", icon: LuPartyPopper, perm: "events.view" },
   { group: "Amministrazione" },
   { to: "/utenti", label: "Utenti e permessi", icon: LuUsers, perm: ["users.manage", "audit.view"] },
   { to: "/impostazioni", label: "Impostazioni", icon: LuSettings, perm: ["settings.manage", "import.run", "export.run", "periods.close"] },
@@ -46,7 +50,7 @@ const ROUTES = [
   ["/prodotti", Products], ["/prodotti/:id", ProductEditor], ["/spese", Expenses], ["/spese/:id", ExpenseDetail],
   ["/fornitori", Suppliers], ["/fornitori/:id", SupplierDetail], ["/ordini", Orders], ["/ordini/:id", OrderDetail],
   ["/ricevimento", ReceiveGoods], ["/report", Reports], ["/utenti", Users], ["/impostazioni", Settings],
-  ["/cambia-password", ChangePassword],
+  ["/cambia-password", ChangePassword], ["/bici", BikeLocation], ["/eventi", EventRequests],
 ];
 
 function match(pattern, path) {
@@ -128,6 +132,7 @@ export default function App() {
     ctx.can("sales.create") && { to: ctx.can("dashboard.view") ? "/cassa" : "/", label: "Vendi", icon: LuShoppingBag, sell: true },
     ctx.can("inventory.view") && { to: "/magazzino", label: "Magazzino", icon: LuPackage },
     !ctx.can("sales.view") && ctx.can("sales.close_day") && { to: "/chiusura", label: "Chiusura", icon: LuLock },
+    !ctx.can("inventory.view") && ctx.can("location.share") && { to: "/bici", label: "Bici", icon: LuBike },
   ].filter(Boolean).slice(0, 4);
 
   return (

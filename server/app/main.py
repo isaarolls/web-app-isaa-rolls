@@ -19,7 +19,7 @@ from . import config, db
 from .http import ROUTES, make_endpoint
 
 # registrazione delle rotte (import per effetto collaterale)
-from .api import auth, users, settings, inventory, products, sales, payments, expenses, purchasing, reports, io, giveaways  # noqa: F401,E402
+from .api import auth, users, settings, inventory, products, sales, payments, expenses, purchasing, reports, io, giveaways, site  # noqa: F401,E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("isa")
@@ -27,6 +27,17 @@ log = logging.getLogger("isa")
 CSP = ("default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
        "font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
        "base-uri 'self'; form-action 'self'; object-src 'none'")
+# sito pubblico: mappa Leaflet (unpkg) con mappe CARTO/OpenStreetMap
+CSP_SITE = ("default-src 'self'; img-src 'self' data: https://*.basemaps.cartocdn.com https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://unpkg.com; script-src 'self' https://unpkg.com; font-src 'self'; "
+            "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
+
+
+def _is_site_host(scope) -> bool:
+    if not config.SITE_HOSTS:
+        return False
+    host = dict(scope.get("headers") or []).get(b"host", b"").decode().split(":")[0].lower()
+    return host in config.SITE_HOSTS
 
 
 class SecurityHeaders:
@@ -48,12 +59,14 @@ class SecurityHeaders:
                 add("x-content-type-options", "nosniff")
                 add("x-frame-options", "DENY")
                 add("referrer-policy", "same-origin")
-                add("permissions-policy", "camera=(self), microphone=(), geolocation=()")
+                add("permissions-policy", "camera=(self), microphone=(), geolocation=(self)")
                 if config.IS_PROD:
                     add("strict-transport-security", "max-age=31536000; includeSubDomains")
                 path = scope.get("path", "")
                 if path.startswith("/api/"):
                     add("cache-control", "no-store")
+                elif path.startswith("/sito") or _is_site_host(scope):
+                    add("content-security-policy", CSP_SITE)
                 else:
                     add("content-security-policy", CSP)
             await send(message)
@@ -67,7 +80,7 @@ class SecurityHeaders:
                 from starlette.responses import RedirectResponse
                 resp = RedirectResponse(f"https://{host}{scope.get('path', '/')}", status_code=301)
                 return await resp(scope, receive, send)
-        return await self.app(scope, receive, send)
+        return await self.app(scope, receive, send_wrapper)
 
 
 def health(request):
@@ -118,7 +131,31 @@ def api_docs(request):
 <table><tr><th>Metodo</th><th>Percorso</th><th>Descrizione</th><th>Permesso</th></tr>{rows}</table>""")
 
 
+SITE_PAGES = {"": "index.html", "index.html": "index.html", "eventi": "eventi.html", "eventi.html": "eventi.html",
+              "privacy": "privacy.html", "privacy.html": "privacy.html"}
+
+
+def _site_file(rest: str):
+    """File del sito pubblico (web/public/sito → dist/sito)."""
+    base = os.path.realpath(os.path.join(config.WEB_DIST, "sito"))
+    rest = rest.strip("/")
+    name = SITE_PAGES.get(rest, rest)
+    fp = os.path.realpath(os.path.join(base, name))
+    if not fp.startswith(base + os.sep) or not os.path.isfile(fp):
+        fp = os.path.join(base, "index.html") if rest in SITE_PAGES else None
+    if not fp or not os.path.isfile(fp):
+        return PlainTextResponse("Pagina non trovata", status_code=404)
+    cache = "no-cache" if fp.endswith(".html") else "public, max-age=86400"
+    return FileResponse(fp, headers={"Cache-Control": cache})
+
+
+def site_page(request):
+    return _site_file(request.path_params.get("rest", ""))
+
+
 def _spa_index(request):
+    if _is_site_host(request.scope):
+        return _site_file(request.path_params.get("rest", ""))
     rest = request.path_params.get("rest", "")
     if rest and "/" not in rest and not rest.startswith("."):
         base = os.path.realpath(config.WEB_DIST)
@@ -170,6 +207,9 @@ async def _api_404(request):
     return JSONResponse({"error": "Risorsa non trovata"}, status_code=404)
 
 routes.append(Route("/api/{rest:path}", _api_404, methods=["GET", "POST", "PUT", "DELETE", "PATCH"]))
+from starlette.responses import RedirectResponse  # noqa: E402
+routes.append(Route("/sito", lambda r: RedirectResponse("/sito/", status_code=308)))
+routes.append(Route("/sito/{rest:path}", site_page))
 routes.append(Route("/{rest:path}", _spa_index))
 
 middleware = [

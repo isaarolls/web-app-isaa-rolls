@@ -654,3 +654,45 @@ class TestProdottiProntiEAmmanchi(Base):
         self.assertEqual(p["stock_item_id"], it["id"])                  # nessun doppione
         self.admin.post("/sales", {"channel_id": self.channel()["id"], "lines": [{"product_id": prod["id"], "qty": "2"}]})
         self.assertEqual(self.qty(it["id"]), Dec("98"))
+
+
+class TestSitoPubblico(Base):
+    def test_posizione_bici_e_richieste_eventi(self):
+        anon = requests.Session()
+        s = anon.get(Server.url + "/api/public/status").json()
+        self.assertFalse(s["open"]); self.assertNotIn("lat", s)
+        emp, _ = self.make_user("vendite")
+        emp.post("/bike", {"action": "live", "lat": "38.115600", "lng": "13.361400", "accuracy_m": 12, "message": "Siamo al Politeama"})
+        s = anon.get(Server.url + "/api/public/status").json()
+        self.assertTrue(s["open"]); self.assertAlmostEqual(s["lat"], 38.1156); self.assertEqual(s["message"], "Siamo al Politeama")
+        emp.post("/bike", {"action": "aggiorna", "lat": "38.116000", "lng": "13.362000", "accuracy_m": 9})
+        self.assertAlmostEqual(anon.get(Server.url + "/api/public/status").json()["lng"], 13.362)
+        emp.post("/bike", {"action": "chiudi"})
+        s = anon.get(Server.url + "/api/public/status").json()
+        self.assertFalse(s["open"]); self.assertNotIn("lat", s)
+        r = emp.post("/bike", {"action": "aggiorna", "lat": "38.1", "lng": "13.3"})   # telefono rimasto acceso dopo la chiusura
+        self.assertTrue(r["ignored"])
+        self.assertFalse(anon.get(Server.url + "/api/public/status").json()["open"])
+        emp.get("/event-requests", expect=403)
+        # modulo eventi dal sito (senza login)
+        body = {"name": "Giulia Rossi", "phone": "333 1234567", "email": "giulia@example.com", "event_type": "Matrimonio",
+                "event_date": (dt.date.today() + dt.timedelta(days=60)).isoformat(), "place": "Villa a Mondello", "guests": 120,
+                "message": "Vorremmo un angolo dolce", "privacy": True}
+        r = anon.post(Server.url + "/api/public/event-requests", json=body)
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(anon.post(Server.url + "/api/public/event-requests", json={**body, "privacy": False}).status_code, 422)
+        self.assertEqual(anon.post(Server.url + "/api/public/event-requests", json={**body, "email": "nonvalida"}).status_code, 422)
+        anon.post(Server.url + "/api/public/event-requests", json={**body, "website": "spam"})   # bot: ignorato
+        lst = self.admin.get("/event-requests")
+        mine = [x for x in lst if x["email"] == "giulia@example.com"]
+        self.assertEqual(len(mine), 1)
+        self.admin.put(f"/event-requests/{mine[0]['id']}", {"status": "preventivo", "notes": "450 €"})
+        self.assertEqual(next(x for x in self.admin.get("/event-requests") if x["id"] == mine[0]["id"])["status"], "preventivo")
+        # limite anti-spam: max 5 richieste l'ora dallo stesso indirizzo
+        codes = [anon.post(Server.url + "/api/public/event-requests", json=body).status_code for _ in range(6)]
+        self.assertIn(422, codes)
+        # pagine del sito servite su /sito/
+        page = anon.get(Server.url + "/sito/")
+        self.assertIn("Dove siamo", page.text)
+        self.assertIn("unpkg.com", page.headers.get("content-security-policy", ""))
+        self.assertIn("Richiedi un preventivo", anon.get(Server.url + "/sito/eventi").text)

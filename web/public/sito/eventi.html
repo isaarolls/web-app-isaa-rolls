@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Isaa Rolls · Catering per eventi e matrimoni a Palermo</title>
+  <meta name="description" content="Porta la bici di Isaa Rolls al tuo matrimonio, compleanno o evento aziendale a Palermo: rolls e ciambelle preparati al momento. Richiedi un preventivo." />
+  <meta name="theme-color" content="#161616" />
+  <meta property="og:title" content="Isaa Rolls al tuo evento" />
+  <meta property="og:description" content="Matrimoni, feste ed eventi aziendali: rolls e ciambelle preparati al momento dalla nostra bici." />
+  <meta property="og:image" content="img/bici.jpg" />
+  <link rel="icon" href="img/logo-240.png" />
+  <link rel="apple-touch-icon" href="img/logo-240.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="img/logo-240.png" alt="Isaa Rolls" /><span>ISAA ROLLS</span></a>
+      <nav class="nav">
+        <a href="./#dove">Dove siamo</a>
+        <a href="./#menu">Menu</a>
+        <a href="eventi" class="on">Eventi</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="ev-hero rel">
+      <svg class="swirl" style="left:-40px;top:0;width:140px" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 50 m0 -7 a7 7 0 1 1 -7 7 a14 14 0 1 1 14 14 a21 21 0 1 1 -21 -21 a28 28 0 1 1 28 28" fill="none" stroke="#ffde00" stroke-width="9" stroke-linecap="round"/></svg>
+      <div class="wrap">
+        <div class="card banner"><img src="img/banner.jpg" alt="La bici di Isaa Rolls" /></div>
+        <h1><span class="brush">Isaa Rolls al tuo evento</span></h1>
+        <p class="lead">Una bici turchese, il profumo dei rolls appena fatti e un bancone di topping e granelle a scelta. Portiamo lo street food dolce di Palermo
+          a matrimoni, feste ed eventi: i tuoi ospiti scelgono, noi prepariamo tutto al momento.</p>
+        <a class="btn pink" href="#richiesta">Richiedi un preventivo</a>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-title"><span class="brush pink">Per ogni occasione</span></h2>
+        <div class="grid4">
+          <div class="card tile"><div class="ico" style="background:var(--pink)">♥</div><h3>Matrimoni</h3><p>Un angolo dolce per il ricevimento o per il dopo torta: i rolls fatti al momento conquistano tutti.</p></div>
+          <div class="card tile"><div class="ico" style="background:var(--yellow)">★</div><h3>Compleanni e feste</h3><p>Feste private, diciottesimi, battesimi e comunioni, in casa o in villa.</p></div>
+          <div class="card tile"><div class="ico" style="background:var(--teal)">◆</div><h3>Eventi aziendali</h3><p>Inaugurazioni, presentazioni, pause per lo staff ed eventi con i clienti.</p></div>
+          <div class="card tile"><div class="ico" style="background:var(--orange)">●</div><h3>Fiere e mercatini</h3><p>Sagre, mercatini e manifestazioni: la bici si muove ovunque e attira tutti.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap two">
+        <div class="card photo"><img src="img/bici.jpg" alt="La bici di Isaa Rolls in strada a Palermo" loading="lazy" /></div>
+        <div class="card tile" style="display:grid;gap:10px;align-content:start">
+          <h2 class="section-title" style="margin:0"><span class="brush">Cosa portiamo</span></h2>
+          <p>La nostra <b>bici attrezzata</b>, completa di piastra e bancone, montata dove ci dici.</p>
+          <p><b>Rolls e ciambelle</b> preparati davanti ai tuoi ospiti, con tutti i <b>topping</b> e le <b>granelle</b> del nostro menu.</p>
+          <p>Il <b>personale</b> per tutta la durata del servizio. Ci occupiamo noi di tutto, dall'allestimento allo smontaggio.</p>
+          <p>Possiamo concordare insieme gusti, quantità, colori e confezioni per il tuo evento.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-title"><span class="brush pink">Come funziona</span></h2>
+        <div class="steps">
+          <div class="card tile"><h3>Scrivici</h3><p>Compila il modulo qui sotto con data, luogo e numero di ospiti.</p></div>
+          <div class="card tile"><h3>Ricevi il preventivo</h3><p>Ti ricontattiamo per i dettagli e ti mandiamo una proposta su misura.</p></div>
+          <div class="card tile"><h3>Arriviamo noi</h3><p>Il giorno dell'evento arriviamo con la bici e serviamo i tuoi ospiti.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="richiesta">
+      <div class="wrap">
+        <h2 class="section-title"><span class="brush">Richiedi un preventivo</span></h2>
+        <form id="form" class="card" novalidate>
+          <div class="fields">
+            <label>Nome e cognome<input name="name" autocomplete="name" required maxlength="120" /></label>
+            <label>Telefono<input name="phone" type="tel" autocomplete="tel" required maxlength="40" inputmode="tel" /></label>
+            <label>E-mail<input name="email" type="email" autocomplete="email" required maxlength="160" /></label>
+            <label>Tipo di evento<select name="event_type" id="event_type" required><option value="">Scegli…</option></select></label>
+            <label>Data dell'evento<input name="event_date" type="date" id="event_date" /></label>
+            <label>Luogo<input name="place" required maxlength="200" placeholder="Es. Villa a Mondello, Palermo" /></label>
+            <label>Numero di ospiti <span class="opt">(anche indicativo)</span><input name="guests" type="number" min="1" max="100000" inputmode="numeric" /></label>
+          </div>
+          <label>Messaggio <span class="opt">(facoltativo)</span><textarea name="message" maxlength="3000" placeholder="Raccontaci il tuo evento: orari, gusti preferiti, richieste particolari…"></textarea></label>
+          <div class="hp" aria-hidden="true"><label>Sito web<input name="website" tabindex="-1" autocomplete="off" /></label></div>
+          <label class="check"><input type="checkbox" name="privacy" required /> <span>Ho letto l'<a href="privacy" target="_blank">informativa privacy</a> e acconsento a essere ricontattato per questa richiesta.</span></label>
+          <div id="form-msg" class="form-msg" role="status"></div>
+          <div class="actions">
+            <button class="btn pink" type="submit" id="send">Invia la richiesta</button>
+            <a id="wa" class="btn white hidden" href="#" target="_blank" rel="noopener"></a>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="row"><img src="img/logo-240.png" alt="" style="width:56px" /><span><b>Isaa Rolls</b><br>Croccante fuori, Palermo dentro</span></div>
+      <div class="row" id="socials"></div>
+      <small>© <span id="year"></span> Isaa Rolls · <a href="privacy">Privacy</a></small>
+    </div>
+  </footer>
+
+  <script src="common.js"></script>
+  <script src="eventi.js"></script>
+</body>
+</html>

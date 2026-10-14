@@ -53,7 +53,7 @@ class Server:
         reset_database()
         port = _free_port()
         env = dict(os.environ, DATABASE_URL=TEST_DB, APP_ENV="test", BACKGROUND_JOBS="0", AUTO_MIGRATE="0",
-                   WEB_DIST="/nonexistent")
+                   WEB_DIST=os.path.join(os.path.dirname(ROOT), "web", "dist"))
         cls.proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--port", str(port), "--log-level", "warning"],
                                     cwd=ROOT, env=env)
         cls.url = f"http://127.0.0.1:{port}"

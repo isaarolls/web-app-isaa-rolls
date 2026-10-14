@@ -110,3 +110,12 @@ Ogni modifica caricata sul ramo principale del repository viene pubblicata autom
 Il piano gratuito di Neon ha 1 GB: basta per anni di vendite e spese, ma le foto delle fatture lo riempiono più in fretta. Neon avvisa quando ci si avvicina al limite. A quel punto hai due strade:
 - passare al piano a consumo di Neon, senza canone fisso;
 - creare un database su Render (circa 6 $ al mese), ripristinarci l'ultimo backup con `restore.sh` e cambiare `DATABASE_URL`.
+
+## 11. Sito pubblico (dove siamo + eventi)
+Il sito per i clienti è già incluso nello stesso servizio: nessun hosting in più.
+- Senza dominio è su `https://isa-manager.onrender.com/sito/` (pagina eventi: `/sito/eventi`).
+- 👤 Con un dominio tuo (es. `isaarolls.it`, circa 10–15 € l'anno):
+  1. compra il dominio da un registrar (Aruba, Register.it, Cloudflare…);
+  2. Render → servizio `isa-manager` → Settings → Custom Domains → aggiungi `isaarolls.it` e `www.isaarolls.it` e crea nel registrar i record DNS che Render indica;
+  3. Render → Environment → aggiungi `SITE_HOSTS` = `isaarolls.it,www.isaarolls.it` → Save. Su quei domini il sito appare alla radice; il gestionale resta su `isa-manager.onrender.com`.
+- La posizione si gestisce dal gestionale: **Posizione bici** (Aperti in tempo reale / Siamo fermi qui / Chiudi). Le richieste del modulo arrivano in **Richieste eventi**.

@@ -7,6 +7,8 @@ DB_POOL_SIZE = int(os.environ.get("DB_POOL_SIZE", "10"))
 
 # URL pubblico dell'applicazione (usato nei link di recupero password)
 PUBLIC_URL = os.environ.get("PUBLIC_URL", "http://localhost:8000").rstrip("/")
+# domini su cui mostrare il sito pubblico alla radice (es. "isaarolls.it,www.isaarolls.it"); altrimenti è su /sito/
+SITE_HOSTS = {h.strip().lower() for h in os.environ.get("SITE_HOSTS", "").split(",") if h.strip()}
 
 # Origini aggiuntive ammesse (CORS), es. app mobile Capacitor
 CORS_ORIGINS = [

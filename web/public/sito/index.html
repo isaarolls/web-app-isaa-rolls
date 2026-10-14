@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Isaa Rolls · Dove siamo adesso a Palermo</title>
+  <meta name="description" content="Isaa Rolls è lo street food dolce su due ruote che gira per Palermo: rolls e ciambelle. Guarda in tempo reale dove si trova la bici e raggiungila." />
+  <meta name="theme-color" content="#161616" />
+  <meta property="og:title" content="Isaa Rolls · Dove siamo adesso" />
+  <meta property="og:description" content="Croccante fuori, Palermo dentro. Guarda dove si trova la bici in tempo reale." />
+  <meta property="og:image" content="img/banner.jpg" />
+  <link rel="icon" href="img/logo-240.png" />
+  <link rel="apple-touch-icon" href="img/logo-240.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="img/logo-240.png" alt="Isaa Rolls" /><span>ISAA ROLLS</span></a>
+      <nav class="nav">
+        <a href="#dove" class="on">Dove siamo</a>
+        <a href="#menu">Menu</a>
+        <a href="eventi">Eventi</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero rel" id="dove">
+      <svg class="swirl" style="right:-30px;top:10px;width:150px" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 50 m0 -7 a7 7 0 1 1 -7 7 a14 14 0 1 1 14 14 a21 21 0 1 1 -21 -21 a28 28 0 1 1 28 28" fill="none" stroke="#ff69cd" stroke-width="9" stroke-linecap="round"/></svg>
+      <div class="wrap">
+        <h1><span class="brush">Dove siamo adesso?</span></h1>
+        <div class="card status" aria-live="polite">
+          <div class="status-head">
+            <span id="pill" class="pill"><span class="dot"></span><span id="pill-text">Caricamento…</span></span>
+            <span id="updated" class="updated"></span>
+          </div>
+          <p id="msg" class="msg"></p>
+          <div id="stale" class="warn hidden">La posizione non si aggiorna da un po': potremmo esserci spostati di poco.</div>
+
+          <div id="open-box" class="hidden">
+            <div id="map" class="map"></div>
+            <div class="actions" style="margin-top:12px">
+              <a id="go" class="btn" href="#" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg>
+                Portami qui
+              </a>
+              <a id="gmaps" class="btn white" href="#" target="_blank" rel="noopener">Apri in Google Maps</a>
+            </div>
+            <p class="note" style="margin-top:10px">La posizione si aggiorna da sola. Il cerchio indica la precisione del GPS.</p>
+          </div>
+
+          <div id="closed-box" class="closed-box hidden">
+            <img src="img/logo.png" alt="" />
+            <h2 style="font-size:24px;margin-bottom:6px">Adesso siamo chiusi</h2>
+            <p style="margin:0">Torna a trovarci più tardi: quando la bici è in giro, qui vedi esattamente dove si trova.</p>
+            <p id="closed-social" style="margin:12px 0 0" class="hidden">Per sapere dove saremo, seguici su <a id="closed-ig" href="#" target="_blank" rel="noopener"><b>Instagram</b></a>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="menu">
+      <div class="wrap">
+        <h2 class="section-title"><span class="brush pink">Il menu</span></h2>
+        <div class="menu-grid">
+          <a class="card" href="img/menu.jpg" data-zoom><img src="img/menu.jpg" alt="Menu Isaa Rolls: rolls e ciambelle" loading="lazy" width="1024" height="1536" /></a>
+          <a class="card" href="img/componi.jpg" data-zoom><img src="img/componi.jpg" alt="Componi il tuo roll e la tua ciambella: topping, granelle, extra" loading="lazy" width="1055" height="1491" /></a>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="card banner"><img src="img/banner.jpg" alt="La bici di Isaa Rolls: croccante fuori, Palermo dentro" loading="lazy" /></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="card cta">
+          <h2 class="section-title" style="margin:0"><span class="brush">Isaa Rolls al tuo evento</span></h2>
+          <p>Matrimoni, compleanni, feste ed eventi aziendali: arriviamo con la bici e prepariamo rolls e ciambelle al momento per i tuoi ospiti.</p>
+          <a class="btn dark" href="eventi">Richiedi un preventivo</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="row"><img src="img/logo-240.png" alt="" style="width:56px" /><span><b>Isaa Rolls</b><br>Croccante fuori, Palermo dentro</span></div>
+      <div class="row" id="socials"></div>
+      <small>© <span id="year"></span> Isaa Rolls · <a href="privacy">Privacy</a></small>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="common.js"></script>
+  <script src="dove.js"></script>
+</body>
+</html>

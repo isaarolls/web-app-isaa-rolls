@@ -41,6 +41,8 @@ PERMISSIONS: dict[str, tuple[str, str]] = {
     "users.manage": ("Utenti e permessi", "Gestire utenti, ruoli e permessi"),
     "settings.manage": ("Impostazioni", "Modificare impostazioni e tabelle di base"),
     "audit.view": ("Utenti e permessi", "Consultare il registro attività"),
+    "location.share": ("Sito e bici", "Aprire/chiudere e condividere la posizione della bici sul sito"),
+    "events.view": ("Sito e bici", "Vedere e gestire le richieste di eventi e catering dal sito"),
 }
 
 ALL = list(PERMISSIONS)
@@ -67,6 +69,6 @@ ROLES = {
     "vendite": {
         "name": "Dipendente (solo vendite)",
         "description": "Può soltanto registrare le vendite: non vede magazzino, incassi, costi né report",
-        "permissions": ["sales.create"],
+        "permissions": ["sales.create", "location.share"],
     },
 }
