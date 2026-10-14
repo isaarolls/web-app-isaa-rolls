@@ -11,11 +11,11 @@ import time
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import config, db
+from . import config, db, security
 from .http import ROUTES, make_endpoint
 
 # registrazione delle rotte (import per effetto collaterale)
@@ -33,11 +33,9 @@ CSP_SITE = ("default-src 'self'; img-src 'self' data: https://tile.openstreetmap
             "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
 
 
-def _is_site_host(scope) -> bool:
-    if not config.SITE_HOSTS:
-        return False
-    host = dict(scope.get("headers") or []).get(b"host", b"").decode().split(":")[0].lower()
-    return host in config.SITE_HOSTS
+def _is_site_path(path: str) -> bool:
+    """Tutto ciò che non è gestionale o API è il sito pubblico."""
+    return not (path.startswith("/gestionale") or path.startswith("/assets/") or path.startswith("/api/"))
 
 
 class SecurityHeaders:
@@ -58,7 +56,7 @@ class SecurityHeaders:
                         headers.append((k.encode(), v.encode()))
                 add("x-content-type-options", "nosniff")
                 add("x-frame-options", "DENY")
-                site = scope.get("path", "").startswith("/sito") or _is_site_host(scope)
+                site = _is_site_path(scope.get("path", ""))
                 # il sito invia l'origine alle mappe di OpenStreetMap (richiesto dalle loro regole d'uso)
                 add("referrer-policy", "strict-origin-when-cross-origin" if site else "same-origin")
                 add("permissions-policy", "camera=(self), microphone=(), geolocation=(self)")
@@ -67,7 +65,7 @@ class SecurityHeaders:
                 path = scope.get("path", "")
                 if path.startswith("/api/"):
                     add("cache-control", "no-store")
-                elif path.startswith("/sito") or _is_site_host(scope):
+                elif _is_site_path(path):
                     add("content-security-policy", CSP_SITE)
                 else:
                     add("content-security-policy", CSP)
@@ -138,33 +136,52 @@ SITE_PAGES = {"": "index.html", "index.html": "index.html", "eventi": "eventi.ht
 
 
 def _site_file(rest: str):
-    """File del sito pubblico (web/public/sito → dist/sito)."""
+    """File del sito pubblico (web/public/sito → dist/sito), servito alla radice del dominio."""
     base = os.path.realpath(os.path.join(config.WEB_DIST, "sito"))
     rest = rest.strip("/")
     name = SITE_PAGES.get(rest, rest)
     fp = os.path.realpath(os.path.join(base, name))
     if not fp.startswith(base + os.sep) or not os.path.isfile(fp):
-        fp = os.path.join(base, "index.html") if rest in SITE_PAGES else None
-    if not fp or not os.path.isfile(fp):
-        return PlainTextResponse("Pagina non trovata", status_code=404)
+        # file del gestionale rimasti alla radice (vecchi collegamenti, icona sulla schermata Home)
+        if rest and "/" not in rest and not rest.startswith("."):
+            g = os.path.realpath(os.path.join(config.WEB_DIST, rest))
+            if g.startswith(os.path.realpath(config.WEB_DIST) + os.sep) and os.path.isfile(g) and not g.endswith("index.html"):
+                return FileResponse(g, headers={"Cache-Control": "no-cache"})
+        fp = os.path.join(base, "index.html")
+        if not os.path.isfile(fp):
+            return PlainTextResponse("Pagina non trovata", status_code=404)
+        return FileResponse(fp, status_code=200 if rest in SITE_PAGES else 404, headers={"Cache-Control": "no-cache"})
     cache = "no-cache" if fp.endswith((".html", ".js", ".css")) else "public, max-age=86400"
     return FileResponse(fp, headers={"Cache-Control": cache})
 
 
-def site_page(request):
-    return _site_file(request.path_params.get("rest", ""))
-
-
-def _spa_index(request):
-    if _is_site_host(request.scope):
-        return _site_file(request.path_params.get("rest", ""))
+def site_root(request):
+    """Radice del dominio: il sito per i clienti. Chi ha già fatto l'accesso al gestionale viene portato lì."""
     rest = request.path_params.get("rest", "")
-    if rest and "/" not in rest and not rest.startswith("."):
-        base = os.path.realpath(config.WEB_DIST)
+    if rest in ("", "index.html") and request.cookies.get(security.COOKIE_NAME):
+        try:
+            user, _, _ = security.authenticate(request)
+        except Exception:
+            user = None
+        if user:
+            return RedirectResponse("/gestionale/", status_code=302)
+    return _site_file(rest)
+
+
+def legacy_sito(request):
+    return RedirectResponse("/" + request.path_params.get("rest", ""), status_code=301)
+
+
+def gestionale(request):
+    """Il gestionale, su /gestionale/ (app a pagina singola con i suoi file)."""
+    rest = request.path_params.get("rest", "").strip("/")
+    base = os.path.realpath(config.WEB_DIST)
+    if rest and not rest.startswith(".") and not rest.startswith("sito"):
         fp = os.path.realpath(os.path.join(base, rest))
-        if fp.startswith(base + os.sep) and os.path.isfile(fp):
-            return FileResponse(fp, headers={"Cache-Control": "public, max-age=3600"})
-    index = os.path.join(config.WEB_DIST, "index.html")
+        if fp.startswith(base + os.sep) and os.path.isfile(fp) and not fp.endswith("index.html"):
+            cache = "public, max-age=31536000, immutable" if rest.startswith("assets/") else "no-cache"
+            return FileResponse(fp, headers={"Cache-Control": cache})
+    index = os.path.join(base, "index.html")
     if not os.path.exists(index):
         return PlainTextResponse("Interfaccia non compilata: eseguire la build del frontend (web/build.mjs).", status_code=503)
     return FileResponse(index, headers={"Cache-Control": "no-cache"})
@@ -209,10 +226,11 @@ async def _api_404(request):
     return JSONResponse({"error": "Risorsa non trovata"}, status_code=404)
 
 routes.append(Route("/api/{rest:path}", _api_404, methods=["GET", "POST", "PUT", "DELETE", "PATCH"]))
-from starlette.responses import RedirectResponse  # noqa: E402
-routes.append(Route("/sito", lambda r: RedirectResponse("/sito/", status_code=308)))
-routes.append(Route("/sito/{rest:path}", site_page))
-routes.append(Route("/{rest:path}", _spa_index))
+routes.append(Route("/gestionale", lambda r: RedirectResponse("/gestionale/", status_code=308)))
+routes.append(Route("/gestionale/{rest:path}", gestionale))
+routes.append(Route("/sito", lambda r: RedirectResponse("/", status_code=301)))
+routes.append(Route("/sito/{rest:path}", legacy_sito))
+routes.append(Route("/{rest:path}", site_root))
 
 middleware = [
     Middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS, allow_credentials=True,

@@ -99,7 +99,7 @@ def _notify(to: str, req: dict):
             f"Nome: {req['name']}", f"Telefono: {req['phone']}", f"E-mail: {req['email']}",
             f"Evento: {req['event_type']}", f"Data: {req['event_date'].strftime('%d/%m/%Y') if req['event_date'] else '—'}",
             f"Luogo: {req['place']}", f"Ospiti: {req['guests'] or '—'}", "", req["message"] or "", "",
-            f"Gestisci la richiesta: {config.PUBLIC_URL.rstrip('/')}/#/eventi",
+            f"Gestisci la richiesta: {config.PUBLIC_URL.rstrip('/')}/gestionale/#/eventi",
         ])
         send_mail(to, f"Richiesta evento: {req['event_type']} – {req['name']}", body)
     except Exception as e:  # l'e-mail è un di più: la richiesta resta comunque salvata

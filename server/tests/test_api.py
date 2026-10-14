@@ -692,7 +692,18 @@ class TestSitoPubblico(Base):
         codes = [anon.post(Server.url + "/api/public/event-requests", json=body).status_code for _ in range(6)]
         self.assertIn(422, codes)
         # pagine del sito servite su /sito/
-        page = anon.get(Server.url + "/sito/")
+        page = anon.get(Server.url + "/")
         self.assertIn("Dove siamo", page.text)
         self.assertIn("unpkg.com", page.headers.get("content-security-policy", ""))
-        self.assertIn("Richiedi un preventivo", anon.get(Server.url + "/sito/eventi").text)
+        self.assertIn("Richiedi un preventivo", anon.get(Server.url + "/eventi").text)
+        self.assertEqual(anon.get(Server.url + "/sito/eventi", allow_redirects=False).headers["location"], "/eventi")
+        g = anon.get(Server.url + "/gestionale/")
+        self.assertIn("Isaa Rolls Manager", g.text)
+        self.assertNotIn("unpkg.com", g.headers.get("content-security-policy", ""))
+        self.assertEqual(anon.get(Server.url + "/gestionale/manifest.webmanifest").status_code, 200)
+        # chi ha già fatto l'accesso e apre la radice (vecchia icona sulla schermata Home) va al gestionale
+        from tests.helpers import ADMIN
+        web = requests.Session()
+        web.post(Server.url + "/api/auth/login", json={"email": ADMIN[0], "password": ADMIN[1]})
+        self.assertEqual(web.get(Server.url + "/", allow_redirects=False).headers.get("location"), "/gestionale/")
+        self.assertEqual(anon.get(Server.url + "/", allow_redirects=False).status_code, 200)

@@ -150,7 +150,7 @@ def user_reset_link(ctx: Ctx):
             raise not_found("Utente")
         token = create_reset_token(c, uid)
         audit(c, ctx, "update", "user", uid, "Generato link di reimpostazione password")
-    return {"link": f"{config.PUBLIC_URL}/#/reimposta-password?token={token}", "valid_hours": 2}
+    return {"link": f"{config.PUBLIC_URL}/gestionale/#/reimposta-password?token={token}", "valid_hours": 2}
 
 
 @api("POST", "/users/{id}/revoke-sessions", "users.manage")

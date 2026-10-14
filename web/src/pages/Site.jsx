@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import * as F from "../fmt.js";
 import { Badge, Button, ErrorBox, Field, Input, Loading, Notice, PageHeader, Select, Textarea, useAction, useApp, useData } from "../ui.jsx";
 
-const SITE_URL = "/sito/";
+const SITE_URL = "/";
 
 function geoError(e) {
   if (!navigator.geolocation) return "Questo telefono o browser non permette di leggere la posizione.";

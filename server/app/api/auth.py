@@ -128,7 +128,7 @@ def forgot(ctx: Ctx):
         u = c.one("SELECT * FROM users WHERE lower(email)=lower(%s) AND is_active", [data.email.strip()])
         if u and config.SMTP_HOST:
             token = create_reset_token(c, u["id"])
-            link = f"{config.PUBLIC_URL}/#/reimposta-password?token={token}"
+            link = f"{config.PUBLIC_URL}/gestionale/#/reimposta-password?token={token}"
             try:
                 sent = send_mail(u["email"], "Isaa Rolls Manager – reimpostazione password",
                                  f"Ciao {u['full_name']},\n\nper scegliere una nuova password apri questo link "

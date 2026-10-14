@@ -111,11 +111,12 @@ Il piano gratuito di Neon ha 1 GB: basta per anni di vendite e spese, ma le foto
 - passare al piano a consumo di Neon, senza canone fisso;
 - creare un database su Render (circa 6 $ al mese), ripristinarci l'ultimo backup con `restore.sh` e cambiare `DATABASE_URL`.
 
-## 11. Sito pubblico (dove siamo + eventi)
-Il sito per i clienti è già incluso nello stesso servizio: nessun hosting in più.
-- Senza dominio è su `https://isa-manager.onrender.com/sito/` (pagina eventi: `/sito/eventi`).
-- 👤 Con un dominio tuo (es. `isaarolls.it`, circa 10–15 € l'anno):
-  1. compra il dominio da un registrar (Aruba, Register.it, Cloudflare…);
-  2. Render → servizio `isa-manager` → Settings → Custom Domains → aggiungi `isaarolls.it` e `www.isaarolls.it` e crea nel registrar i record DNS che Render indica;
-  3. Render → Environment → aggiungi `SITE_HOSTS` = `isaarolls.it,www.isaarolls.it` → Save. Su quei domini il sito appare alla radice; il gestionale resta su `isa-manager.onrender.com`.
-- La posizione si gestisce dal gestionale: **Posizione bici** (Aperti in tempo reale / Siamo fermi qui / Chiudi). Le richieste del modulo arrivano in **Richieste eventi**.
+## 11. Sito pubblico e gestionale sullo stesso dominio
+Un solo servizio Render serve tutto (nessun hosting in più):
+- `https://isaarolls.it/` → sito per i clienti (dove siamo, menu, `/eventi`, `/privacy`);
+- `https://isaarolls.it/gestionale/` → il gestionale (chi ha già fatto l'accesso e apre la radice viene portato lì).
+
+👤 Collegare il dominio:
+1. Render → servizio `isa-manager` → Settings → Custom Domains → aggiungi `isaarolls.it` e poi `www.isaarolls.it`.
+2. Nel pannello del registrar crea i record DNS che Render indica (di solito un record **A** per `isaarolls.it` e un **CNAME** `www` → `isa-manager.onrender.com`). Elimina eventuali record A/CNAME già presenti per gli stessi nomi.
+3. Quando Render mostra «Verified» e il certificato è emesso, imposta `PUBLIC_URL` = `https://isaarolls.it` (Environment → Save).
