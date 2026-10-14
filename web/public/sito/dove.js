@@ -16,9 +16,9 @@
   function ensureMap(lat, lng) {
     if (map || !window.L) return !!map;
     map = L.map("map", { zoomControl: true, attributionControl: true, scrollWheelZoom: false }).setView([lat, lng], 16);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      maxZoom: 19, subdomains: "abcd",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
     const icon = L.divIcon({ className: "", html: '<div class="bike-pin"><img src="img/logo-240.png" alt="Isaa Rolls" /></div>', iconSize: [64, 64], iconAnchor: [32, 76] });
     marker = L.marker([lat, lng], { icon, title: "Isaa Rolls è qui" }).addTo(map);

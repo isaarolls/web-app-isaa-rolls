@@ -28,7 +28,7 @@ CSP = ("default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe
        "font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
        "base-uri 'self'; form-action 'self'; object-src 'none'")
 # sito pubblico: mappa Leaflet (unpkg) con mappe CARTO/OpenStreetMap
-CSP_SITE = ("default-src 'self'; img-src 'self' data: https://*.basemaps.cartocdn.com https://unpkg.com; "
+CSP_SITE = ("default-src 'self'; img-src 'self' data: https://tile.openstreetmap.org https://unpkg.com; "
             "style-src 'self' 'unsafe-inline' https://unpkg.com; script-src 'self' https://unpkg.com; font-src 'self'; "
             "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'")
 
@@ -58,7 +58,9 @@ class SecurityHeaders:
                         headers.append((k.encode(), v.encode()))
                 add("x-content-type-options", "nosniff")
                 add("x-frame-options", "DENY")
-                add("referrer-policy", "same-origin")
+                site = scope.get("path", "").startswith("/sito") or _is_site_host(scope)
+                # il sito invia l'origine alle mappe di OpenStreetMap (richiesto dalle loro regole d'uso)
+                add("referrer-policy", "strict-origin-when-cross-origin" if site else "same-origin")
                 add("permissions-policy", "camera=(self), microphone=(), geolocation=(self)")
                 if config.IS_PROD:
                     add("strict-transport-security", "max-age=31536000; includeSubDomains")
@@ -145,7 +147,7 @@ def _site_file(rest: str):
         fp = os.path.join(base, "index.html") if rest in SITE_PAGES else None
     if not fp or not os.path.isfile(fp):
         return PlainTextResponse("Pagina non trovata", status_code=404)
-    cache = "no-cache" if fp.endswith(".html") else "public, max-age=86400"
+    cache = "no-cache" if fp.endswith((".html", ".js", ".css")) else "public, max-age=86400"
     return FileResponse(fp, headers={"Cache-Control": cache})
 
 
