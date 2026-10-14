@@ -143,3 +143,14 @@ footer small { color: #bbb; }
 /* lightbox menu */
 .lightbox { position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.88); display: grid; place-items: center; padding: 16px; }
 .lightbox img { max-height: 92vh; width: auto; border-radius: 12px; }
+
+/* pulsanti contatto fissi */
+.fab { position: fixed; right: 14px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 1500; display: grid; gap: 10px; justify-items: end; }
+.fab-btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 700; font-size: 15px;
+  padding: 12px 16px; border-radius: 999px; border: 3px solid var(--ink); box-shadow: 3px 4px 0 var(--ink); color: var(--ink); }
+.fab-btn svg { width: 24px; height: 24px; }
+.fab-btn.wa { background: #25d366; color: #fff; }
+.fab-btn.tel { background: var(--yellow); }
+.fab-btn:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+@media (max-width: 420px) { .fab-btn span { display: none; } .fab-btn { padding: 13px; } .fab-btn svg { width: 28px; height: 28px; } }
+footer { padding-bottom: 110px; }

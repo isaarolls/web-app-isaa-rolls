@@ -17,6 +17,7 @@
       return r.json();
     },
     socials(info, el) {
+      if (info) ISA.contacts(info);
       if (!el || !info) return;
       const items = [];
       if (info.instagram) items.push(["Instagram", info.instagram, ICONS.instagram]);
@@ -33,6 +34,26 @@
         el.appendChild(a);
       }
     },
+  };
+  // pulsanti fissi WhatsApp e telefono, sempre visibili in basso a destra
+  ISA.contacts = function (info) {
+    if (!info || document.getElementById("fab")) return;
+    const box = document.createElement("div");
+    box.id = "fab"; box.className = "fab";
+    if (info.whatsapp) {
+      const a = document.createElement("a");
+      a.className = "fab-btn wa"; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", "Scrivici su WhatsApp");
+      a.href = wa(info.whatsapp) + "?text=" + encodeURIComponent("Ciao Isaa Rolls! ");
+      a.innerHTML = ICONS.whatsapp + "<span>WhatsApp</span>";
+      box.appendChild(a);
+    }
+    if (info.phone) {
+      const a = document.createElement("a");
+      a.className = "fab-btn tel"; a.href = "tel:" + info.phone.replace(/[^\d+]/g, ""); a.setAttribute("aria-label", "Chiamaci");
+      a.innerHTML = ICONS.phone + "<span>Chiamaci</span>";
+      box.appendChild(a);
+    }
+    if (box.children.length) document.body.appendChild(box);
   };
   const y = document.getElementById("year"); if (y) y.textContent = new Date().getFullYear();
   // ingrandimento delle immagini del menu
