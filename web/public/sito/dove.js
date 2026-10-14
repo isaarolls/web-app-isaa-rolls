@@ -34,6 +34,12 @@
 
   function render(s) {
     ISA.socials(s.info, $("socials"));
+    // Glovo segue gli orari della bici: si ordina solo quando siamo aperti
+    const glovo = s.info && s.info.glovo;
+    const gb = $("glovo-btn");
+    gb.classList.toggle("hidden", !(glovo && s.open)); if (glovo) gb.href = glovo;
+    $("glovo-hint").classList.toggle("hidden", !!glovo || !s.open);
+    $("glovo-closed").classList.toggle("hidden", !!s.open);
     const pill = $("pill");
     $("msg").textContent = s.message || "";
     if (!s.open) {

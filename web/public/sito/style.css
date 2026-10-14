@@ -28,7 +28,7 @@ a { color: inherit; }
 .nav { margin-left: auto; display: flex; gap: 6px; }
 .nav a { text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 12px; border-radius: 999px; white-space: nowrap; }
 .nav a:hover, .nav a.on { background: var(--yellow); color: var(--ink); }
-@media (max-width: 560px) { .brand span { display: none; } .nav a { padding: 7px 10px; font-size: 13px; } }
+@media (max-width: 560px) { .brand span { display: none; } .nav { gap: 2px; } .nav a { padding: 7px 9px; font-size: 13px; } }
 
 /* titoli a pennellata */
 .brush {
@@ -154,3 +154,10 @@ footer small { color: #bbb; }
 .fab-btn:active { transform: translate(2px, 3px); box-shadow: 1px 1px 0 var(--ink); }
 @media (max-width: 420px) { .fab-btn span { display: none; } .fab-btn { padding: 13px; } .fab-btn svg { width: 28px; height: 28px; } }
 footer { padding-bottom: 110px; }
+
+/* Glovo */
+.glovo { display: grid; grid-template-columns: 200px 1fr; gap: 18px; align-items: center; padding: 22px; background: #fff7dc; }
+.glovo-art { width: 100%; max-width: 200px; }
+.glovo-text p { margin: 0 0 14px; font-size: 17px; }
+.btn.glovo-btn { background: #ffc244; }
+@media (max-width: 640px) { .glovo { grid-template-columns: 1fr; text-align: left; } .glovo-art { max-width: 150px; } }

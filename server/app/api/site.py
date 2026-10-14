@@ -16,7 +16,7 @@ log = logging.getLogger("isa")
 
 STALE_MIN = 20          # oltre questi minuti senza aggiornamenti il sito avvisa che la posizione potrebbe non essere precisa
 AUTO_CLOSE_MIN = 180    # oltre questi minuti senza aggiornamenti il sito mostra «chiusi» (telefono dimenticato acceso)
-SITE_KEYS = ("instagram", "tiktok", "whatsapp", "phone", "email", "notify_email")
+SITE_KEYS = ("instagram", "tiktok", "whatsapp", "phone", "email", "notify_email", "glovo")
 EVENT_TYPES = ("Matrimonio", "Compleanno / festa privata", "Evento aziendale", "Battesimo / comunione", "Fiera / mercatino", "Altro")
 STATUSES = ("nuova", "in_contatto", "preventivo", "confermato", "persa")
 
@@ -46,7 +46,7 @@ def public_status(ctx: Ctx):
         b = _status_row(c)
         site = _site(c)
         name = (setting(c, "company", {}) or {}).get("name") or "Isaa Rolls"
-    info = {k: site[k] for k in ("instagram", "tiktok", "whatsapp", "phone", "email")}
+    info = {k: site[k] for k in ("instagram", "tiktok", "whatsapp", "phone", "email", "glovo")}
     info["name"] = name
     age_min = (b["age_s"] or 0) / 60 if b["updated_at"] else None
     is_open = bool(b["is_open"] and b["lat"] is not None and age_min is not None and age_min < AUTO_CLOSE_MIN)
@@ -193,12 +193,15 @@ class SiteIn(BaseModel):
     phone: str = Field(default="", max_length=40)
     email: str = Field(default="", max_length=160)
     notify_email: str = Field(default="", max_length=160)
+    glovo: str = Field(default="", max_length=400)
 
 
 @api("PUT", "/site-info", "settings.manage")
 def put_site_info(ctx: Ctx):
     data = ctx.parse(SiteIn).model_dump()
     data = {k: (v or "").strip() for k, v in data.items()}
+    if data["glovo"] and not data["glovo"].startswith("https://"):
+        raise bad("Il link di Glovo deve iniziare con https:// (copialo dall'app Glovo: Condividi negozio)")
     for k in ("instagram", "tiktok"):
         v = data[k]
         if v and not v.startswith("http"):

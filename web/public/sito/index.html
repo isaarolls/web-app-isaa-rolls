@@ -12,7 +12,7 @@
   <link rel="icon" href="img/logo-240.png" />
   <link rel="apple-touch-icon" href="img/logo-240.png" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <header class="top">
@@ -21,6 +21,7 @@
       <nav class="nav">
         <a href="#dove" class="on">Dove siamo</a>
         <a href="#menu">Menu</a>
+        <a href="#glovo">Glovo</a>
         <a href="eventi">Eventi</a>
       </nav>
     </div>
@@ -56,6 +57,32 @@
             <h2 style="font-size:24px;margin-bottom:6px">Adesso siamo chiusi</h2>
             <p style="margin:0">Torna a trovarci più tardi: quando la bici è in giro, qui vedi esattamente dove si trova.</p>
             <p id="closed-social" style="margin:12px 0 0" class="hidden">Per sapere dove saremo, seguici su <a id="closed-ig" href="#" target="_blank" rel="noopener"><b>Instagram</b></a>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="glovo">
+      <div class="wrap">
+        <div class="card glovo">
+          <svg class="glovo-art" viewBox="0 0 220 180" aria-hidden="true">
+            <g stroke="#161616" stroke-width="5" stroke-linecap="round" fill="none">
+              <path d="M14 70h34M6 92h42M18 114h30"/>
+            </g>
+            <rect x="62" y="44" width="124" height="112" rx="18" fill="#ffc244" stroke="#161616" stroke-width="6"/>
+            <path d="M62 78h124" stroke="#161616" stroke-width="6"/>
+            <path d="M96 44c0-22 56-22 56 0" fill="none" stroke="#161616" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="124" cy="117" r="27" fill="#fff" stroke="#161616" stroke-width="5"/>
+            <path transform="translate(127 114) scale(.8) translate(-124 -117)" d="M124 117 m0 -5 a5 5 0 1 1 -5 5 a10 10 0 1 1 10 10 a15 15 0 1 1 -15 -15" fill="none" stroke="#ff69cd" stroke-width="6" stroke-linecap="round"/>
+            <path d="M196 20c-9 0-16 7-16 16 0 12 16 28 16 28s16-16 16-28c0-9-7-16-16-16z" fill="#ff69cd" stroke="#161616" stroke-width="5"/>
+            <circle cx="196" cy="36" r="5" fill="#fff"/>
+          </svg>
+          <div class="glovo-text">
+            <h2 class="section-title" style="margin:0 0 8px"><span class="brush">Ordina a casa con Glovo</span></h2>
+            <p>Siamo <b>partner Glovo</b>: quando siamo aperti, a Palermo puoi ordinare rolls e ciambelle su Glovo e riceverli direttamente a casa.</p>
+            <a id="glovo-btn" class="btn glovo-btn hidden" href="#" target="_blank" rel="noopener">Ordina su Glovo</a>
+            <p id="glovo-hint" class="note">Apri l'app Glovo e cerca <b>«Isaa Rolls»</b>.</p>
+            <p id="glovo-closed" class="warn hidden" style="margin:0">Adesso siamo chiusi anche su Glovo: ti aspettiamo alla prossima apertura!</p>
           </div>
         </div>
       </div>
@@ -97,7 +124,7 @@
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="common.js?v=3"></script>
-  <script src="dove.js?v=3"></script>
+  <script src="common.js?v=5"></script>
+  <script src="dove.js?v=5"></script>
 </body>
 </html>

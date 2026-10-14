@@ -159,6 +159,7 @@ function SiteInfo({ initial, onSaved }) {
       <div className="grid g2">
         <Field label="Instagram" hint="Nome utente o link"><Input value={f.instagram} onChange={set("instagram")} placeholder="@isaarolls" /></Field>
         <Field label="TikTok" hint="Nome utente o link"><Input value={f.tiktok} onChange={set("tiktok")} placeholder="@isaarolls" /></Field>
+        <Field label="Link del negozio su Glovo" hint="Nell'app Glovo apri Isaa Rolls → Condividi → Copia link" className="span-all"><Input value={f.glovo || ""} onChange={set("glovo")} placeholder="https://glovoapp.com/…" /></Field>
         <Field label="WhatsApp" hint="Numero per il pulsante «Scrivici»"><Input value={f.whatsapp} onChange={set("whatsapp")} placeholder="+39 333 1234567" inputMode="tel" /></Field>
         <Field label="Telefono"><Input value={f.phone} onChange={set("phone")} inputMode="tel" /></Field>
         <Field label="E-mail pubblica"><Input value={f.email} onChange={set("email")} type="email" /></Field>
