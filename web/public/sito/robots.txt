@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /gestionale/
+Disallow: /api/
+
+Sitemap: https://isaarolls.it/sitemap.xml
