@@ -15,7 +15,7 @@ from ..http import Ctx, api, audit, bad, not_found
 log = logging.getLogger("isa")
 
 STALE_MIN = 20          # oltre questi minuti senza aggiornamenti il sito avvisa che la posizione potrebbe non essere precisa
-AUTO_CLOSE_MIN = 180    # oltre questi minuti senza aggiornamenti il sito mostra «chiusi» (telefono dimenticato acceso)
+AUTO_CLOSE_MIN = 360    # oltre questi minuti senza aggiornamenti il sito mostra «chiusi» (telefono dimenticato acceso)
 SITE_KEYS = ("instagram", "tiktok", "whatsapp", "phone", "email", "notify_email", "glovo")
 EVENT_TYPES = ("Matrimonio", "Compleanno / festa privata", "Evento aziendale", "Battesimo / comunione", "Fiera / mercatino", "Altro")
 STATUSES = ("nuova", "in_contatto", "preventivo", "confermato", "persa")
