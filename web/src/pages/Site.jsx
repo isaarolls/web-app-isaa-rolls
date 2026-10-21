@@ -144,6 +144,7 @@ export function BikeLocation() {
           «In tempo reale» serve quando vi spostate con la bici.</p>
       </div>
       {can("settings.manage") && b.site && <SiteInfo initial={b.site} onSaved={reload} />}
+      {can("settings.manage") && b.site && b.allergen_catalog && <Allergens initial={b.site} catalog={b.allergen_catalog} onSaved={reload} />}
     </>
   );
 }
@@ -164,8 +165,69 @@ function SiteInfo({ initial, onSaved }) {
         <Field label="Telefono"><Input value={f.phone} onChange={set("phone")} inputMode="tel" /></Field>
         <Field label="E-mail pubblica"><Input value={f.email} onChange={set("email")} type="email" /></Field>
         <Field label="E-mail per le richieste eventi" hint="Dove ricevere l'avviso di una nuova richiesta (serve l'invio e-mail configurato)"><Input value={f.notify_email} onChange={set("notify_email")} type="email" /></Field>
+        <Field label="Link per le recensioni Google" hint="App Google Maps → la tua foto → Il tuo profilo dell'attività → Chiedi recensioni → Copia link" className="span-all"><Input value={f.review || ""} onChange={set("review")} placeholder="https://g.page/r/…" /></Field>
       </div>
-      <div className="row end"><Button variant="primary" busy={busy} onClick={async () => { const r = await run(() => api.put("/site-info", f), "Dati del sito salvati"); if (r) { setF(r); onSaved(); } }}>Salva</Button></div>
+      <h3 style={{ margin: "18px 0 4px" }}>Dati dell'attività</h3>
+      <p className="small muted" style={{ marginTop: 0 }}>Obbligatori per legge: compaiono in fondo a ogni pagina del sito e nell'informativa privacy.</p>
+      <div className="grid g2">
+        <Field label="Ragione sociale" hint="Es. «Mario Rossi» (ditta individuale) o «Isaa Rolls S.r.l.»"><Input value={f.legal_name || ""} onChange={set("legal_name")} /></Field>
+        <Field label="Partita IVA" hint="11 cifre"><Input value={f.vat || ""} onChange={set("vat")} inputMode="numeric" placeholder="01234567890" /></Field>
+        <Field label="Sede" hint="Via, numero, CAP e città" className="span-all"><Input value={f.address || ""} onChange={set("address")} placeholder="Via …, 90100 Palermo (PA)" /></Field>
+      </div>
+      <div className="row end"><Button variant="primary" busy={busy} onClick={async () => { const { allergens, ...rest } = f; const r = await run(() => api.put("/site-info", rest), "Dati del sito salvati"); if (r) { setF(r); onSaved(); } }}>Salva</Button></div>
+    </div>
+  );
+}
+
+function Allergens({ initial, catalog, onSaved }) {
+  const [al, setAl] = useState(() => initial.allergens || {});
+  const [open, setOpen] = useState(null);
+  const [run, busy] = useAction();
+  const name = Object.fromEntries(catalog.allergens.map((a) => [a.code, a.it]));
+  const toggle = (item, code) => setAl((s) => {
+    const cur = s[item] || [];
+    return { ...s, [item]: cur.includes(code) ? cur.filter((c) => c !== code) : [...cur, code] };
+  });
+  return (
+    <div className="card" style={{ maxWidth: 640, marginTop: 16 }}>
+      <div className="card-head"><h2>Allergeni</h2></div>
+      <p className="small muted" style={{ marginTop: 0 }}>Tocca un prodotto e spunta gli allergeni che contiene. Sul sito compare la tabella, sotto il menu.
+        Se non spunti niente, il sito dice di chiedere al personale.</p>
+      <div style={{ display: "grid", gap: 8 }}>
+        {catalog.items.map((it) => {
+          const sel = al[it.code] || [];
+          const isOpen = open === it.code;
+          return (
+            <div key={it.code} style={{ border: "1px solid var(--border, #ddd)", borderRadius: 12, padding: "10px 12px" }}>
+              <button type="button" onClick={() => setOpen(isOpen ? null : it.code)}
+                style={{ all: "unset", cursor: "pointer", display: "flex", width: "100%", justifyContent: "space-between", gap: 8 }}>
+                <b>{it.it}</b>
+                <span className="small muted" style={{ textAlign: "right" }}>{sel.length ? sel.map((c) => name[c]).join(", ") : "nessuno"} {isOpen ? "▲" : "▼"}</span>
+              </button>
+              {isOpen && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                  {catalog.allergens.map((a) => {
+                    const on = sel.includes(a.code);
+                    return (
+                      <button key={a.code} type="button" onClick={() => toggle(it.code, a.code)}
+                        style={{ padding: "8px 12px", borderRadius: 999, fontSize: 14, fontWeight: 600, cursor: "pointer",
+                          border: "2px solid " + (on ? "#161616" : "#ccc"), background: on ? "#ffde00" : "transparent", color: "inherit" }}>
+                        {on ? "✓ " : ""}{a.it}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="row end" style={{ marginTop: 12 }}>
+        <Button variant="primary" busy={busy} onClick={async () => {
+          const r = await run(() => api.put("/site-info", { allergens: al }), "Allergeni salvati");
+          if (r) onSaved();
+        }}>Salva allergeni</Button>
+      </div>
     </div>
   );
 }

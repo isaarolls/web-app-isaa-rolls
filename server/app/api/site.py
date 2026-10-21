@@ -16,7 +16,26 @@ log = logging.getLogger("isa")
 
 STALE_MIN = 20          # oltre questi minuti senza aggiornamenti il sito avvisa che la posizione potrebbe non essere precisa
 AUTO_CLOSE_MIN = 360    # oltre questi minuti senza aggiornamenti il sito mostra «chiusi» (telefono dimenticato acceso)
-SITE_KEYS = ("instagram", "tiktok", "whatsapp", "phone", "email", "notify_email", "glovo")
+SITE_KEYS = ("instagram", "tiktok", "whatsapp", "phone", "email", "notify_email", "glovo",
+             "legal_name", "vat", "address", "review")
+PUBLIC_KEYS = ("instagram", "tiktok", "whatsapp", "phone", "email", "glovo", "legal_name", "vat", "address", "review")
+# i 14 allergeni del Reg. UE 1169/2011 (codice, italiano, inglese)
+ALLERGENS = (("glutine", "Glutine", "Gluten"), ("latte", "Latte", "Milk"), ("uova", "Uova", "Eggs"),
+             ("frutta_guscio", "Frutta a guscio", "Tree nuts"), ("arachidi", "Arachidi", "Peanuts"), ("soia", "Soia", "Soy"),
+             ("sesamo", "Sesamo", "Sesame"), ("solfiti", "Solfiti", "Sulphites"), ("lupini", "Lupini", "Lupin"),
+             ("sedano", "Sedano", "Celery"), ("senape", "Senape", "Mustard"), ("pesce", "Pesce", "Fish"),
+             ("crostacei", "Crostacei", "Crustaceans"), ("molluschi", "Molluschi", "Molluscs"))
+# prodotti per cui si indicano gli allergeni (codice, italiano, inglese)
+ALLERGEN_ITEMS = (("impasto_roll", "Impasto dei rolls", "Rolls dough"), ("impasto_ciambella", "Impasto delle ciambelle", "Donut dough"),
+                  ("r_tiramisu", "Roll Tiramisù", "Tiramisù roll"), ("r_cookies", "Roll Cookies", "Cookies roll"),
+                  ("r_pistacchioso", "Roll Pistacchioso", "Pistachio roll"), ("r_crema", "Roll Crema gialla", "Custard roll"),
+                  ("r_nutellotto", "Roll Nutellotto", "Nutellotto roll"), ("r_galak", "Roll Galak", "Galak roll"),
+                  ("c_classica", "Ciambella Classica", "Classic donut"), ("c_nutella", "Ciambella Nutella", "Nutella donut"),
+                  ("c_pistacchiosa", "Ciambella Pistacchiosa", "Pistachio donut"), ("c_cookies", "Ciambella Cookies", "Cookies donut"),
+                  ("c_tiramisu", "Ciambella Tiramisù", "Tiramisù donut"), ("c_crema", "Ciambella Crema gialla", "Custard donut"),
+                  ("extra", "Topping, granelle ed extra", "Toppings, sprinkles and extras"))
+_ALL_CODES = {a[0] for a in ALLERGENS}
+_ITEM_CODES = {i[0] for i in ALLERGEN_ITEMS}
 EVENT_TYPES = ("Matrimonio", "Compleanno / festa privata", "Evento aziendale", "Battesimo / comunione", "Fiera / mercatino", "Altro")
 STATUSES = ("nuova", "in_contatto", "preventivo", "confermato", "persa")
 
@@ -28,7 +47,15 @@ def _ip(ctx: Ctx) -> str | None:
 
 def _site(c) -> dict:
     s = setting(c, "site", {}) or {}
-    return {k: (s.get(k) or "") for k in SITE_KEYS}
+    out = {k: (s.get(k) or "") for k in SITE_KEYS}
+    al = s.get("allergens") if isinstance(s.get("allergens"), dict) else {}
+    out["allergens"] = {k: [a for a in v if a in _ALL_CODES] for k, v in al.items() if k in _ITEM_CODES and isinstance(v, list)}
+    return out
+
+
+def _allergen_catalog() -> dict:
+    return {"allergens": [{"code": c, "it": i, "en": e} for c, i, e in ALLERGENS],
+            "items": [{"code": c, "it": i, "en": e} for c, i, e in ALLERGEN_ITEMS]}
 
 
 def _status_row(c) -> dict:
@@ -46,11 +73,12 @@ def public_status(ctx: Ctx):
         b = _status_row(c)
         site = _site(c)
         name = (setting(c, "company", {}) or {}).get("name") or "Isaa Rolls"
-    info = {k: site[k] for k in ("instagram", "tiktok", "whatsapp", "phone", "email", "glovo")}
+    info = {k: site[k] for k in PUBLIC_KEYS}
     info["name"] = name
+    info["allergens"] = site["allergens"]
     age_min = (b["age_s"] or 0) / 60 if b["updated_at"] else None
     is_open = bool(b["is_open"] and b["lat"] is not None and age_min is not None and age_min < AUTO_CLOSE_MIN)
-    out = {"open": is_open, "info": info, "event_types": EVENT_TYPES}
+    out = {"open": is_open, "info": info, "event_types": EVENT_TYPES, "allergen_catalog": _allergen_catalog()}
     if is_open:
         out.update({
             "lat": float(b["lat"]), "lng": float(b["lng"]), "accuracy_m": b["accuracy_m"], "mode": b["mode"],
@@ -145,6 +173,7 @@ def bike_status(ctx: Ctx):
         b = _status_row(c)
         site = _site(c)
     b["site"] = site if ctx.can("settings.manage") else None
+    b["allergen_catalog"] = _allergen_catalog() if ctx.can("settings.manage") else None
     b["auto_close_min"] = AUTO_CLOSE_MIN
     return b
 
@@ -187,19 +216,42 @@ def bike_update(ctx: Ctx):
 
 
 class SiteIn(BaseModel):
-    instagram: str = Field(default="", max_length=200)
-    tiktok: str = Field(default="", max_length=200)
-    whatsapp: str = Field(default="", max_length=40)
-    phone: str = Field(default="", max_length=40)
-    email: str = Field(default="", max_length=160)
-    notify_email: str = Field(default="", max_length=160)
-    glovo: str = Field(default="", max_length=400)
+    instagram: str | None = Field(default=None, max_length=200)
+    tiktok: str | None = Field(default=None, max_length=200)
+    whatsapp: str | None = Field(default=None, max_length=40)
+    phone: str | None = Field(default=None, max_length=40)
+    email: str | None = Field(default=None, max_length=160)
+    notify_email: str | None = Field(default=None, max_length=160)
+    glovo: str | None = Field(default=None, max_length=400)
+    legal_name: str | None = Field(default=None, max_length=160)
+    vat: str | None = Field(default=None, max_length=20)
+    address: str | None = Field(default=None, max_length=200)
+    review: str | None = Field(default=None, max_length=400)
+    allergens: dict[str, list[str]] | None = None
 
 
 @api("PUT", "/site-info", "settings.manage")
 def put_site_info(ctx: Ctx):
-    data = ctx.parse(SiteIn).model_dump()
-    data = {k: (v or "").strip() for k, v in data.items()}
+    parsed = ctx.parse(SiteIn)
+    with db.read() as c:
+        current = _site(c)
+    # si aggiornano solo i campi inviati: il modulo dei dati e quello degli allergeni si salvano separatamente
+    data = {k: (getattr(parsed, k).strip() if getattr(parsed, k) is not None else current[k]) for k in SITE_KEYS}
+    data["allergens"] = current["allergens"] if parsed.allergens is None else {}
+    for item, codes in (parsed.allergens or {}).items():
+        if item not in _ITEM_CODES:
+            raise bad("Prodotto non valido nella tabella allergeni")
+        bad_codes = [a for a in codes if a not in _ALL_CODES]
+        if bad_codes:
+            raise bad("Allergene non valido: " + ", ".join(bad_codes))
+        if codes:
+            data["allergens"][item] = [a[0] for a in ALLERGENS if a[0] in codes]   # ordine fisso, senza doppioni
+    vat = re.sub(r"[\s.]", "", data["vat"]).upper().removeprefix("IT")
+    if vat and not re.fullmatch(r"\d{11}", vat):
+        raise bad("La partita IVA deve avere 11 cifre")
+    data["vat"] = vat
+    if data["review"] and not data["review"].startswith("https://"):
+        raise bad("Il link per le recensioni deve iniziare con https:// (copialo da Google: Chiedi recensioni → Copia link)")
     if data["glovo"] and not data["glovo"].startswith("https://"):
         raise bad("Il link di Glovo deve iniziare con https:// (copialo dall'app Glovo: Condividi negozio)")
     for k in ("instagram", "tiktok"):

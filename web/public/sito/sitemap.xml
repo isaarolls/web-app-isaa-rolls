@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://isaarolls.it/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://isaarolls.it/eventi</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://isaarolls.it/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>https://isaarolls.it/</loc><changefreq>daily</changefreq><priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="it" href="https://isaarolls.it/" /><xhtml:link rel="alternate" hreflang="en" href="https://isaarolls.it/en/" /></url>
+  <url><loc>https://isaarolls.it/eventi</loc><changefreq>monthly</changefreq><priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="it" href="https://isaarolls.it/eventi" /><xhtml:link rel="alternate" hreflang="en" href="https://isaarolls.it/en/eventi" /></url>
+  <url><loc>https://isaarolls.it/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority>
+    <xhtml:link rel="alternate" hreflang="it" href="https://isaarolls.it/privacy" /><xhtml:link rel="alternate" hreflang="en" href="https://isaarolls.it/en/privacy" /></url>
+  <url><loc>https://isaarolls.it/en/</loc><changefreq>daily</changefreq><priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="it" href="https://isaarolls.it/" /><xhtml:link rel="alternate" hreflang="en" href="https://isaarolls.it/en/" /></url>
+  <url><loc>https://isaarolls.it/en/eventi</loc><changefreq>monthly</changefreq><priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="it" href="https://isaarolls.it/eventi" /><xhtml:link rel="alternate" hreflang="en" href="https://isaarolls.it/en/eventi" /></url>
+  <url><loc>https://isaarolls.it/en/privacy</loc><changefreq>yearly</changefreq><priority>0.1</priority>
+    <xhtml:link rel="alternate" hreflang="it" href="https://isaarolls.it/privacy" /><xhtml:link rel="alternate" hreflang="en" href="https://isaarolls.it/en/privacy" /></url>
 </urlset>

@@ -132,7 +132,9 @@ def api_docs(request):
 
 
 SITE_PAGES = {"": "index.html", "index.html": "index.html", "eventi": "eventi.html", "eventi.html": "eventi.html",
-              "privacy": "privacy.html", "privacy.html": "privacy.html"}
+              "privacy": "privacy.html", "privacy.html": "privacy.html",
+              "en": "en/index.html", "en/index.html": "en/index.html", "en/eventi": "en/eventi.html", "en/eventi.html": "en/eventi.html",
+              "en/privacy": "en/privacy.html", "en/privacy.html": "en/privacy.html"}
 
 
 def _site_file(rest: str):

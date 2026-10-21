@@ -2,22 +2,26 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const form = $("form"), msg = $("form-msg"), send = $("send");
+  const t = ISA.t;
   const TYPES = ["Matrimonio", "Compleanno / festa privata", "Evento aziendale", "Battesimo / comunione", "Fiera / mercatino", "Altro"];
+  // il valore inviato resta in italiano (è quello che vedete nel gestionale), l'etichetta segue la lingua della pagina
+  const EN_TYPES = { "Matrimonio": "Wedding", "Compleanno / festa privata": "Birthday / private party", "Evento aziendale": "Corporate event",
+    "Battesimo / comunione": "Christening / communion", "Fiera / mercatino": "Fair / market", "Altro": "Other" };
   const fill = (types) => {
     const sel = $("event_type");
     sel.length = 1;
-    for (const t of types) { const o = document.createElement("option"); o.value = o.textContent = t; sel.appendChild(o); }
+    for (const ty of types) { const o = document.createElement("option"); o.value = ty; o.textContent = ISA.EN ? (EN_TYPES[ty] || ty) : ty; sel.appendChild(o); }
   };
   fill(TYPES);
   const d = new Date(); $("event_date").min = d.toISOString().slice(0, 10);
 
   ISA.status().then((s) => {
-    ISA.socials(s.info, $("socials"));
+    ISA.apply(s);
     if (s.event_types) fill(s.event_types);
     if (s.info && s.info.whatsapp) {
       const wa = $("wa");
-      wa.href = ISA.wa(s.info.whatsapp) + "?text=" + encodeURIComponent("Ciao Isaa Rolls! Vorrei informazioni per un evento.");
-      wa.innerHTML = ISA.ICONS.whatsapp + "<span>Scrivici su WhatsApp</span>";
+      wa.href = ISA.wa(s.info.whatsapp) + "?text=" + encodeURIComponent(t("Ciao Isaa Rolls! Vorrei informazioni per un evento.", "Hi Isaa Rolls! I'd like some information about an event."));
+      wa.innerHTML = ISA.ICONS.whatsapp + "<span>" + t("Scrivici su WhatsApp", "Message us on WhatsApp") + "</span>";
       wa.classList.remove("hidden");
     }
   }).catch(() => {});
@@ -34,24 +38,24 @@
       privacy: !!f.get("privacy"), website: f.get("website") || "",
     };
     const missing = [];
-    if (body.name.length < 2) missing.push("nome");
-    if (body.phone.replace(/\D/g, "").length < 6) missing.push("telefono");
+    if (body.name.length < 2) missing.push(t("nome", "name"));
+    if (body.phone.replace(/\D/g, "").length < 6) missing.push(t("telefono", "phone"));
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) missing.push("e-mail");
-    if (!body.event_type) missing.push("tipo di evento");
-    if (body.place.length < 2) missing.push("luogo");
-    if (missing.length) return show("Controlla questi campi: " + missing.join(", ") + ".", false);
-    if (!body.privacy) return show("Per inviare la richiesta spunta il consenso all'informativa privacy.", false);
-    send.disabled = true; send.textContent = "Invio in corso…";
+    if (!body.event_type) missing.push(t("tipo di evento", "type of event"));
+    if (body.place.length < 2) missing.push(t("luogo", "venue"));
+    if (missing.length) return show(t("Controlla questi campi: ", "Please check these fields: ") + missing.join(", ") + ".", false);
+    if (!body.privacy) return show(t("Per inviare la richiesta spunta il consenso all'informativa privacy.", "To send the request, please tick the privacy consent box."), false);
+    send.disabled = true; send.textContent = t("Invio in corso…", "Sending…");
     try {
       const r = await fetch("/api/public/event-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || (j.details && j.details[0] && j.details[0].message) || "Invio non riuscito");
+      if (!r.ok) throw new Error(ISA.EN ? "Sending failed: please check the fields or message us on WhatsApp." : (j.error || (j.details && j.details[0] && j.details[0].message) || "Invio non riuscito"));
       form.reset();
-      show("Grazie! Abbiamo ricevuto la tua richiesta: ti ricontattiamo al più presto.", true);
+      show(t("Grazie! Abbiamo ricevuto la tua richiesta: ti ricontattiamo al più presto.", "Thank you! We've received your request and will get back to you soon."), true);
     } catch (err) {
-      show(err.message || "Invio non riuscito: riprova tra poco.", false);
+      show(err.message || t("Invio non riuscito: riprova tra poco.", "Sending failed: please try again shortly."), false);
     } finally {
-      send.disabled = false; send.textContent = "Invia la richiesta";
+      send.disabled = false; send.textContent = t("Invia la richiesta", "Send request");
     }
   });
 })();

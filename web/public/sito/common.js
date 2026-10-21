@@ -9,8 +9,51 @@
   };
   const wa = (n) => "https://wa.me/" + String(n).replace(/[^\d]/g, "").replace(/^00/, "").replace(/^(?=3\d{8,9}$)/, "39");
 
+  const EN = document.documentElement.lang === "en";
+  const t = (it, en) => (EN ? en : it);
+  const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
   window.ISA = {
-    ICONS, wa,
+    ICONS, wa, EN, t, esc,
+    // applica allo scheletro della pagina i dati presi dal gestionale
+    apply(s) {
+      const info = s && s.info;
+      if (!info) return;
+      ISA.socials(info, document.getElementById("socials"));
+      ISA.legal(info);
+      ISA.review(info);
+      const al = document.getElementById("allergens");
+      if (al && s.allergen_catalog) ISA.allergens(info.allergens || {}, s.allergen_catalog, al);
+    },
+    legal(info) {
+      const parts = [];
+      if (info.legal_name) parts.push(info.legal_name);
+      if (info.vat) parts.push(t("P.IVA ", "VAT ") + info.vat);
+      if (info.address) parts.push(info.address);
+      document.querySelectorAll("[data-legal]").forEach((el) => { el.textContent = parts.join(" · "); el.classList.toggle("hidden", !parts.length); });
+    },
+    review(info) {
+      document.querySelectorAll("[data-review]").forEach((el) => {
+        el.classList.toggle("hidden", !info.review);
+        const a = el.tagName === "A" ? el : el.querySelector("a[data-review-link]");
+        if (a && info.review) a.href = info.review;
+      });
+    },
+    allergens(map, cat, el) {
+      const name = Object.fromEntries(cat.allergens.map((a) => [a.code, EN ? a.en : a.it]));
+      const rows = cat.items.filter((it) => (map[it.code] || []).length);
+      let html = "";
+      if (rows.length) {
+        html += '<div class="al-list">' + rows.map((it) =>
+          `<div class="al-row"><b>${esc(EN ? it.en : it.it)}</b><span>${map[it.code].map((c) => `<i>${esc(name[c] || c)}</i>`).join("")}</span></div>`).join("") + "</div>";
+        html += `<p class="note" style="margin-top:12px">${t("Tutto è preparato al momento sulla bici con gli stessi strumenti: ogni prodotto può contenere tracce degli altri allergeni. Se hai un'allergia o un'intolleranza, diccelo prima di ordinare.",
+          "Everything is made to order on the bike with the same tools, so every product may contain traces of the other allergens. If you have an allergy or intolerance, please tell us before ordering.")}</p>`;
+      } else {
+        html = `<p style="margin:0">${t("Hai un'allergia o un'intolleranza? Chiedi al nostro personale prima di ordinare: ti diciamo esattamente cosa contiene ogni prodotto.",
+          "Do you have an allergy or intolerance? Ask our staff before ordering: we'll tell you exactly what each product contains.")}</p>`;
+      }
+      el.innerHTML = html;
+    },
     async status() {
       const r = await fetch("/api/public/status", { cache: "no-store" });
       if (!r.ok) throw new Error("status " + r.status);
@@ -42,15 +85,15 @@
     box.id = "fab"; box.className = "fab";
     if (info.whatsapp) {
       const a = document.createElement("a");
-      a.className = "fab-btn wa"; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", "Scrivici su WhatsApp");
-      a.href = wa(info.whatsapp) + "?text=" + encodeURIComponent("Ciao Isaa Rolls! ");
+      a.className = "fab-btn wa"; a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", t("Scrivici su WhatsApp", "Message us on WhatsApp"));
+      a.href = wa(info.whatsapp) + "?text=" + encodeURIComponent(t("Ciao Isaa Rolls! ", "Hi Isaa Rolls! "));
       a.innerHTML = ICONS.whatsapp + "<span>WhatsApp</span>";
       box.appendChild(a);
     }
     if (info.phone) {
       const a = document.createElement("a");
-      a.className = "fab-btn tel"; a.href = "tel:" + info.phone.replace(/[^\d+]/g, ""); a.setAttribute("aria-label", "Chiamaci");
-      a.innerHTML = ICONS.phone + "<span>Chiamaci</span>";
+      a.className = "fab-btn tel"; a.href = "tel:" + info.phone.replace(/[^\d+]/g, ""); a.setAttribute("aria-label", t("Chiamaci", "Call us"));
+      a.innerHTML = ICONS.phone + "<span>" + t("Chiamaci", "Call us") + "</span>";
       box.appendChild(a);
     }
     if (box.children.length) document.body.appendChild(box);

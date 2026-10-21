@@ -707,3 +707,27 @@ class TestSitoPubblico(Base):
         web.post(Server.url + "/api/auth/login", json={"email": ADMIN[0], "password": ADMIN[1]})
         self.assertEqual(web.get(Server.url + "/", allow_redirects=False).headers.get("location"), "/gestionale/")
         self.assertEqual(anon.get(Server.url + "/", allow_redirects=False).status_code, 200)
+
+    def test_dati_legali_recensioni_allergeni_e_inglese(self):
+        anon = requests.Session()
+        self.admin.put("/site-info", {"legal_name": "Isaa Rolls di Prova", "vat": "IT 0123456789 0", "address": "Via Roma 1, Palermo",
+                                      "review": "https://g.page/r/prova/review"})
+        self.admin.put("/site-info", {"allergens": {"r_pistacchioso": ["latte", "frutta_guscio", "glutine", "latte"]}})
+        info = anon.get(Server.url + "/api/public/status").json()["info"]
+        self.assertEqual(info["vat"], "01234567890")
+        self.assertEqual(info["legal_name"], "Isaa Rolls di Prova")       # il salvataggio degli allergeni non cancella i dati
+        self.assertEqual(info["allergens"]["r_pistacchioso"], ["glutine", "latte", "frutta_guscio"])
+        self.assertNotIn("notify_email", info)
+        self.admin.put("/site-info", {"vat": "123"}, expect=422)
+        self.admin.put("/site-info", {"review": "g.page/x"}, expect=422)
+        self.admin.put("/site-info", {"allergens": {"inventato": ["latte"]}}, expect=422)
+        self.admin.put("/site-info", {"allergens": {"extra": ["veleno"]}}, expect=422)
+        emp, _ = self.make_user("vendite")
+        emp.put("/site-info", {"vat": "01234567890"}, expect=403)
+        self.assertIsNone(emp.get("/bike")["allergen_catalog"])
+        self.admin.put("/site-info", {"legal_name": "", "vat": "", "address": "", "review": "", "allergens": {}})
+        # versione inglese del sito
+        for path, text in (("/en/", "Where are we now?"), ("/en/eventi", "Request a quote"), ("/en/privacy", "Privacy notice")):
+            r = anon.get(Server.url + path)
+            self.assertEqual(r.status_code, 200, path); self.assertIn(text, r.text); self.assertIn('lang="en"', r.text)
+        self.assertIn('hreflang="en"', anon.get(Server.url + "/").text)

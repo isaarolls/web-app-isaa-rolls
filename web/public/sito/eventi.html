@@ -14,11 +14,14 @@
   <meta property="og:locale" content="it_IT" />
   <meta property="og:site_name" content="Isaa Rolls" />
   <link rel="canonical" href="https://isaarolls.it/eventi" />
+  <link rel="alternate" hreflang="it" href="https://isaarolls.it/eventi" />
+  <link rel="alternate" hreflang="en" href="https://isaarolls.it/en/eventi" />
+  <link rel="alternate" hreflang="x-default" href="https://isaarolls.it/eventi" />
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="192x192" href="/img/favicon-192.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="/img/favicon-48.png" />
   <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
   <header class="top">
@@ -28,7 +31,7 @@
         <a href="./#dove">Dove siamo</a>
         <a href="./#menu">Menu</a>
         <a href="eventi" class="on">Eventi</a>
-      </nav>
+      <a class="lang" href="/en/eventi" hreflang="en" lang="en" aria-label="English version">EN</a></nav>
     </div>
   </header>
 
@@ -110,11 +113,12 @@
     <div class="wrap">
       <div class="row"><img src="img/logo-240.png" alt="" style="width:56px" /><span><b>Isaa Rolls</b><br>Croccante fuori, Palermo dentro</span></div>
       <div class="row" id="socials"></div>
-      <small>© <span id="year"></span> Isaa Rolls · <a href="privacy">Privacy</a> · <a href="/gestionale/">Area riservata</a></small>
+      <small class="legal hidden" data-legal></small>
+      <small>© <span id="year"></span> Isaa Rolls · <a href="privacy">Privacy</a> · <a href="./#allergeni">Allergeni</a> · <a href="#" class="hidden" data-review target="_blank" rel="noopener">Recensioni Google</a> · <a href="/gestionale/">Area riservata</a></small>
     </div>
   </footer>
 
-  <script src="common.js?v=6"></script>
-  <script src="eventi.js?v=6"></script>
+  <script src="common.js?v=7"></script>
+  <script src="eventi.js?v=7"></script>
 </body>
 </html>
