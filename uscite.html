@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Uscite · Southside Ent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Catalogo delle uscite Southside Ent: singoli, EP e album.">
+<meta property="og:title" content="Uscite · Southside Ent">
+<meta property="og:description" content="Catalogo delle uscite Southside Ent: singoli, EP e album.">
+<meta property="og:site_name" content="Southside Ent">
+<meta property="og:locale" content="it_IT">
+<meta name="theme-color" content="#0d1014">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a href="index.html" aria-label="Southside Ent, home"><span class="logo" role="img" aria-label="Southside Ent"></span></a>
+    <nav aria-label="Principale"><ul><li><a href="artisti.html">Artisti</a></li><li><a href="uscite.html" aria-current="page">Uscite</a></li><li><a href="playlist.html">Playlist</a></li><li><a href="servizi.html">Servizi</a></li><li><a href="eventi.html">Live</a></li><li><a href="contatti.html">Contatti</a></li></ul></nav>
+    <a class="btn solid cta" href="demo.html">Invia la tua demo</a>
+    <button class="burger" id="burger" aria-label="Apri menu" aria-expanded="false" aria-controls="drawer"><span></span><span></span><span></span></button>
+  </div>
+</header>
+<div class="drawer" id="drawer" aria-hidden="true"><a href="index.html"><small>01</small>Home</a><a href="artisti.html"><small>02</small>Artisti</a><a href="uscite.html" aria-current="page"><small>03</small>Uscite</a><a href="playlist.html"><small>04</small>Playlist</a><a href="servizi.html"><small>05</small>Servizi</a><a href="eventi.html"><small>06</small>Live</a><a href="contatti.html"><small>07</small>Contatti</a><a href="demo.html"><small>08</small>Invia demo</a></div>
+<main>
+<section class="page-hero">
+  <canvas id="wave" aria-hidden="true"></canvas>
+  <div class="wrap" style="position:relative">
+    <div class="crumbs eyebrow reveal"><a href="index.html">Southside Ent</a><span>/</span><span>02 Uscite</span></div>
+    <h1 class="reveal d1">Cata<span class="g">logo</span></h1>
+    <p class="lead muted reveal d2">Ogni uscita ha il suo numero di catalogo SSE. Filtra per formato e apri il brano sulla tua piattaforma preferita.</p>
+  </div>
+</section>
+<section style="border-top:0;padding-top:0"><div class="wrap">
+      <div class="filters" role="group" aria-label="Filtra per formato">
+        <button class="chip" aria-pressed="true" data-f="tutti">Tutti</button>
+        <button class="chip" aria-pressed="false" data-f="Singolo">Singoli</button>
+        <button class="chip" aria-pressed="false" data-f="EP">EP</button>
+        <button class="chip" aria-pressed="false" data-f="Album">Album</button>
+      </div>
+      <div class="cat" id="catalog"></div></div></section>
+</main>
+<section class="band">
+  <div class="wrap">
+    <div><p class="eyebrow">Sei un artista?</p><h2 style="margin-top:14px">Mandaci<br>la tua musica</h2></div>
+    <a class="btn" href="demo.html">Invia la tua demo <span class="arr">→</span></a>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <span class="logo foot-big" role="img" aria-label="Southside Ent"></span>
+    <div class="foot-grid">
+      <div><h5>Southside Ent</h5><p class="muted" style="max-width:36ch;font-size:15px">Etichetta discografica, management ed edizioni musicali. Via Giacinto Carini 5, 90144 Palermo.</p></div>
+      <div><h5>Esplora</h5><ul><li><a href="artisti.html">Artisti</a></li><li><a href="uscite.html">Uscite</a></li><li><a href="playlist.html">Playlist ufficiale</a></li><li><a href="servizi.html">Servizi</a></li><li><a href="eventi.html">Live</a></li><li><a href="demo.html">Invia demo</a></li></ul></div>
+      <div><h5>Social</h5><ul><li><a data-social="instagram" href="#" target="_blank" rel="noopener">Instagram</a></li><li><a data-social="spotify" href="#" target="_blank" rel="noopener">Spotify</a></li><li><a data-social="youtube" href="#" target="_blank" rel="noopener">YouTube</a></li><li><a data-social="tiktok" href="#" target="_blank" rel="noopener">TikTok</a></li></ul></div>
+      <div><h5>Legale</h5><ul><li><a href="privacy.html">Privacy policy</a></li><li><a href="privacy.html#cookie">Cookie policy</a></li><li><a href="contatti.html">Dati societari</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <span>© <span class="yr">2026</span> Southside Ent · P.IVA 07342320822 · Via Giacinto Carini 5, 90144 Palermo (PA)</span>
+      <span>southsideent.it</span>
+    </div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status">Copiato</div>
+<script src="dati.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

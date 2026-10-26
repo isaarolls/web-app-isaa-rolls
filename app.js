@@ -93,9 +93,8 @@ function renderPlaylist(){
   $$('[data-playlist]').forEach(a=>a.href=SITO.playlistUrl);
   const cv=$('#plCover canvas');if(cv)drawTile(cv,'southside-playlist',3,.6);
   const em=$('#spotifyEmbed');
-  if(em&&SITO.playlistId&&!em.firstElementChild){
-    em.hidden=false;
-    em.innerHTML=`<iframe title="Playlist ufficiale Southside Ent su Spotify" src="https://open.spotify.com/embed/playlist/${encodeURIComponent(SITO.playlistId)}?utm_source=generator&theme=0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+  if(em&&SITO.playlistId&&!em.querySelector('iframe')){
+    em.insertAdjacentHTML('afterbegin',`<iframe title="Playlist ufficiale Southside Ent su Spotify" src="https://open.spotify.com/embed/playlist/${encodeURIComponent(SITO.playlistId)}?utm_source=generator&theme=0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`);
   }
 }
 

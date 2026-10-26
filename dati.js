@@ -7,9 +7,9 @@
 const SITO = {
   emailDemo: "amministrazione@southsiderecords.it",
   // Incolla qui il link della playlist ufficiale (Spotify > Condividi > Copia link)
-  playlistUrl: "https://open.spotify.com/",
+  playlistUrl: "https://open.spotify.com/playlist/5TN6EYTHXtWtYqMBVcEDX1",
   // ID della playlist (la parte dopo /playlist/ nel link). Serve per il player incorporato.
-  playlistId: "",
+  playlistId: "5TN6EYTHXtWtYqMBVcEDX1",
   instagram: "https://www.instagram.com/",
   spotify: "https://open.spotify.com/",
   youtube: "https://www.youtube.com/",

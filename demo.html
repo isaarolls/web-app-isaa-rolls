@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Invia Demo · Southside Ent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Invia la tua demo a Southside Ent: ascoltiamo ogni proposta e rispondiamo entro 30 giorni.">
+<meta property="og:title" content="Invia Demo · Southside Ent">
+<meta property="og:description" content="Invia la tua demo a Southside Ent: ascoltiamo ogni proposta e rispondiamo entro 30 giorni.">
+<meta property="og:site_name" content="Southside Ent">
+<meta property="og:locale" content="it_IT">
+<meta name="theme-color" content="#0d1014">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a href="index.html" aria-label="Southside Ent, home"><span class="logo" role="img" aria-label="Southside Ent"></span></a>
+    <nav aria-label="Principale"><ul><li><a href="artisti.html">Artisti</a></li><li><a href="uscite.html">Uscite</a></li><li><a href="playlist.html">Playlist</a></li><li><a href="servizi.html">Servizi</a></li><li><a href="eventi.html">Live</a></li><li><a href="contatti.html">Contatti</a></li></ul></nav>
+    <a class="btn solid cta" href="demo.html" aria-current="page">Invia la tua demo</a>
+    <button class="burger" id="burger" aria-label="Apri menu" aria-expanded="false" aria-controls="drawer"><span></span><span></span><span></span></button>
+  </div>
+</header>
+<div class="drawer" id="drawer" aria-hidden="true"><a href="index.html"><small>01</small>Home</a><a href="artisti.html"><small>02</small>Artisti</a><a href="uscite.html"><small>03</small>Uscite</a><a href="playlist.html"><small>04</small>Playlist</a><a href="servizi.html"><small>05</small>Servizi</a><a href="eventi.html"><small>06</small>Live</a><a href="contatti.html"><small>07</small>Contatti</a><a href="demo.html" aria-current="page"><small>08</small>Invia demo</a></div>
+<main>
+<section id="demo" class="demo" style="padding-top:clamp(56px,8vw,110px)">
+    <div class="wrap">
+      <div class="demo-grid">
+        <div>
+          <p class="eyebrow">Invia la tua demo</p>
+          <h2 style="margin-top:20px">Fatti<br><em>sentire</em></h2>
+          <p style="margin-top:24px;max-width:46ch;font-size:17px">Ascoltiamo ogni proposta. Mandaci il tuo progetto: se ci convince, ti contattiamo entro 30 giorni.</p>
+          <ul class="rules">
+            <li>Invia un link privato (SoundCloud, Drive, Dropbox), niente allegati pesanti</li>
+            <li>Massimo 3 brani, i tuoi migliori</li>
+            <li>Indica i tuoi social e le città in cui suoni</li>
+            <li>Solo materiale inedito di cui detieni i diritti</li>
+          </ul>
+        </div>
+        <form id="demoForm" novalidate>
+          <div class="field half"><label for="f-name">Nome d'arte</label><input id="f-name" name="nome" required placeholder="Il tuo nome d'arte"></div>
+          <div class="field half"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required placeholder="nome@email.it"></div>
+          <div class="field half"><label for="f-city">Città</label><input id="f-city" name="citta" placeholder="Palermo"></div>
+          <div class="field half"><label for="f-genre">Genere</label>
+            <select id="f-genre" name="genere"><option>Rap / Hip hop</option><option>Urban / R&amp;B</option><option>Pop</option><option>Elettronica</option><option>Cantautorato</option><option>Altro</option></select></div>
+          <div class="field half"><label for="f-int">Ti interessa</label>
+            <select id="f-int" name="interesse"><option>Contratto discografico</option><option>Management</option><option>Edizioni musicali</option><option>Tutto il pacchetto</option></select></div>
+          <div class="field half"><label for="f-ig">Instagram / TikTok</label><input id="f-ig" name="social" placeholder="@tuonome"></div>
+          <div class="field"><label for="f-link">Link ai brani</label><input id="f-link" name="link" type="url" required placeholder="https://"></div>
+          <div class="field"><label for="f-msg">Raccontaci il progetto</label><textarea id="f-msg" name="messaggio" placeholder="Chi sei, cosa fai, dove vuoi arrivare"></textarea></div>
+          <label class="check" for="f-priv"><input id="f-priv" type="checkbox" required><span>Ho letto l'informativa privacy e acconsento al trattamento dei dati ai sensi del Reg. UE 2016/679 (GDPR).</span></label>
+          <button class="btn" type="submit">Invia la demo <span class="arr">→</span></button>
+          <div class="form-msg" id="formMsg" role="status" hidden></div>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+<section class="band">
+  <div class="wrap">
+    <div><p class="eyebrow">Sei un artista?</p><h2 style="margin-top:14px">Mandaci<br>la tua musica</h2></div>
+    <a class="btn" href="demo.html">Invia la tua demo <span class="arr">→</span></a>
+  </div>
+</section>
+<footer>
+  <div class="wrap">
+    <span class="logo foot-big" role="img" aria-label="Southside Ent"></span>
+    <div class="foot-grid">
+      <div><h5>Southside Ent</h5><p class="muted" style="max-width:36ch;font-size:15px">Etichetta discografica, management ed edizioni musicali. Via Giacinto Carini 5, 90144 Palermo.</p></div>
+      <div><h5>Esplora</h5><ul><li><a href="artisti.html">Artisti</a></li><li><a href="uscite.html">Uscite</a></li><li><a href="playlist.html">Playlist ufficiale</a></li><li><a href="servizi.html">Servizi</a></li><li><a href="eventi.html">Live</a></li><li><a href="demo.html">Invia demo</a></li></ul></div>
+      <div><h5>Social</h5><ul><li><a data-social="instagram" href="#" target="_blank" rel="noopener">Instagram</a></li><li><a data-social="spotify" href="#" target="_blank" rel="noopener">Spotify</a></li><li><a data-social="youtube" href="#" target="_blank" rel="noopener">YouTube</a></li><li><a data-social="tiktok" href="#" target="_blank" rel="noopener">TikTok</a></li></ul></div>
+      <div><h5>Legale</h5><ul><li><a href="privacy.html">Privacy policy</a></li><li><a href="privacy.html#cookie">Cookie policy</a></li><li><a href="contatti.html">Dati societari</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <span>© <span class="yr">2026</span> Southside Ent · P.IVA 07342320822 · Via Giacinto Carini 5, 90144 Palermo (PA)</span>
+      <span>southsideent.it</span>
+    </div>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status">Copiato</div>
+<script src="dati.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
