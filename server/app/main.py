@@ -84,12 +84,14 @@ class SecurityHeaders:
 
 
 def health(request):
+    """Controllo di Render: il programma risponde. Lo stato del database è indicato a parte, così se il database
+    ha un problema Render non blocca l'aggiornamento e il sito pubblico resta online."""
     try:
         with db.tx() as c:
             c.val("SELECT 1")
-        return JSONResponse({"status": "ok", "env": config.APP_ENV})
+        return JSONResponse({"status": "ok", "db": "ok", "env": config.APP_ENV})
     except Exception:
-        return JSONResponse({"status": "db_error"}, status_code=503)
+        return JSONResponse({"status": "ok", "db": "error", "env": config.APP_ENV})
 
 
 def openapi(request):
