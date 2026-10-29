@@ -84,14 +84,19 @@ class SecurityHeaders:
 
 
 def health(request):
-    """Controllo di Render: il programma risponde. Lo stato del database è indicato a parte, così se il database
-    ha un problema Render non blocca l'aggiornamento e il sito pubblico resta online."""
+    """Controllo di Render (ogni pochi secondi): risponde solo se il programma è acceso, SENZA toccare il database.
+    Se interrogasse il database, Neon non potrebbe mai mettersi in pausa e finirebbero le ore gratuite del mese."""
+    return JSONResponse({"status": "ok", "env": config.APP_ENV})
+
+
+def health_db(request):
+    """Controllo manuale del database: /healthz/db"""
     try:
         with db.tx() as c:
             c.val("SELECT 1")
-        return JSONResponse({"status": "ok", "db": "ok", "env": config.APP_ENV})
-    except Exception:
-        return JSONResponse({"status": "ok", "db": "error", "env": config.APP_ENV})
+        return JSONResponse({"status": "ok", "db": "ok"})
+    except Exception as e:
+        return JSONResponse({"status": "db_error", "error": str(e)[:500]}, status_code=503)
 
 
 def openapi(request):
@@ -205,7 +210,7 @@ def _background():
                     log.info("Generate %s scadenze da spese ricorrenti", n)
         except Exception as e:  # pragma: no cover
             log.warning("Attività periodica non riuscita: %s", e)
-        time.sleep(3600)
+        time.sleep(6 * 3600)        # ogni 6 ore: ogni accesso sveglia il database per qualche minuto
 
 
 def _migrate_with_retry():
@@ -247,6 +252,7 @@ def on_startup():
 routes = [Route(p, make_endpoint(fn, perm, a, raw), methods=[m]) for m, p, fn, perm, a, raw in ROUTES]
 routes += [
     Route("/healthz", health),
+    Route("/healthz/db", health_db),
     Route("/api/openapi.json", openapi),
     Route("/api/docs", api_docs),
 ]

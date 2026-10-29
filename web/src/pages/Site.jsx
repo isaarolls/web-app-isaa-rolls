@@ -39,7 +39,7 @@ export function BikeLocation() {
   const watchId = useRef(null), lastPos = useRef(null), lastAt = useRef(0), wake = useRef(null);
 
   useEffect(() => { if (b && msg === null) setMsg(b.message || ""); }, [b]);
-  useEffect(() => { const t = setInterval(() => reload(), 30000); return () => clearInterval(t); }, [reload]);
+  useEffect(() => { const t = setInterval(() => { if (document.visibilityState === "visible") reload(); }, 30000); return () => clearInterval(t); }, [reload]);
   useEffect(() => () => stopWatch(), []);
 
   const keepAwake = async () => {

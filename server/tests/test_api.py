@@ -731,3 +731,18 @@ class TestSitoPubblico(Base):
             r = anon.get(Server.url + path)
             self.assertEqual(r.status_code, 200, path); self.assertIn(text, r.text); self.assertIn('lang="en"', r.text)
         self.assertIn('hreflang="en"', anon.get(Server.url + "/").text)
+
+    def test_healthz_non_usa_il_database_e_pool_chiude_connessioni_ferme(self):
+        r = requests.get(Server.url + "/healthz")
+        self.assertEqual(r.json()["status"], "ok")
+        self.assertEqual(requests.get(Server.url + "/healthz/db").json()["db"], "ok")
+        from app import db
+        p = db.Pool(2)
+        with db.tx():
+            pass
+        c = p.get(); p.put(c)
+        self.assertEqual(p._created, 1)
+        item = p._q.get_nowait(); p._q.put((item[0], item[1] - 120))   # ferma da 2 minuti
+        p._close_idle()
+        self.assertEqual(p._created, 0)
+        p.close_all()

@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import queue
 import threading
+import time
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -165,10 +166,45 @@ class Pool:
         self._q: queue.Queue = queue.Queue()
         self._created = 0
         self._lock = threading.Lock()
+        self._closed = False
+        threading.Thread(target=self._reaper, daemon=True).start()
+
+    def _reaper(self):
+        while not self._closed:
+            time.sleep(20)
+            try:
+                self._close_idle()
+            except Exception:
+                pass
+
+    IDLE_CLOSE_S = 60      # connessioni inutilizzate da più di un minuto vengono chiuse
+
+    def _close_idle(self):
+        """Chiude le connessioni ferme: così Neon può mettere in pausa il database quando nessuno lo usa
+        (il piano gratuito ha un limite di ore di calcolo al mese)."""
+        now = time.monotonic()
+        keep = []
+        while True:
+            try:
+                c, since = self._q.get_nowait()
+            except queue.Empty:
+                break
+            if now - since > self.IDLE_CLOSE_S:
+                try:
+                    c.close()
+                except Exception:
+                    pass
+                with self._lock:
+                    self._created -= 1
+            else:
+                keep.append((c, since))
+        for item in keep:
+            self._q.put(item)
 
     def get(self):
+        self._close_idle()
         try:
-            c = self._q.get_nowait()
+            c, _ = self._q.get_nowait()
         except queue.Empty:
             with self._lock:
                 if self._created < self.size:
@@ -178,7 +214,7 @@ class Pool:
                     except Exception:
                         self._created -= 1
                         raise
-            c = self._q.get(timeout=30)
+            c, _ = self._q.get(timeout=30)
         if c.broken:
             c.close()
             with self._lock:
@@ -192,12 +228,13 @@ class Pool:
             with self._lock:
                 self._created -= 1
         else:
-            self._q.put(c)
+            self._q.put((c, time.monotonic()))
 
     def close_all(self):
+        self._closed = True
         while True:
             try:
-                self._q.get_nowait().close()
+                self._q.get_nowait()[0].close()
             except queue.Empty:
                 break
         self._created = 0
