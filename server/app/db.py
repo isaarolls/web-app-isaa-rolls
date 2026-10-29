@@ -62,13 +62,21 @@ class _PsycopgConn:  # pragma: no cover - percorso usato in produzione
     def __init__(self, dsn: str):
         try:
             target = _ipv4_target(dsn)
+            ipv4_err = None
             if target:
                 try:
                     self._c = psycopg.connect(dsn, autocommit=True, connect_timeout=10, **target)
                     return
-                except psycopg.OperationalError:
-                    pass       # in caso di problemi si riprova nel modo normale
-            self._c = psycopg.connect(dsn, autocommit=True, connect_timeout=10)
+                except psycopg.OperationalError as e:
+                    ipv4_err = e       # si riprova nel modo normale, ma l'errore IPv4 resta nel messaggio
+            try:
+                self._c = psycopg.connect(dsn, autocommit=True, connect_timeout=10)
+            except Exception as e:
+                v4 = (f"IPv4 {target['hostaddr']}: {ipv4_err}" if ipv4_err else
+                      ("IPv4: tentato senza errore" if target else "IPv4: nessun indirizzo IPv4 trovato per il database"))
+                raise DatabaseError(f"Connessione al database non riuscita. [{v4}] [normale: {e}]")
+        except DatabaseError:
+            raise
         except Exception as e:
             raise DatabaseError(f"Connessione al database non riuscita: {e}")
 

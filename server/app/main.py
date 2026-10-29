@@ -218,7 +218,7 @@ def _migrate_with_retry():
             migrate(verbose=True)
             return True
         except Exception as e:
-            log.warning("Database non raggiungibile all'avvio (tentativo %s): %s", attempt, str(e)[:300])
+            log.warning("Database non raggiungibile all'avvio (tentativo %s): %s", attempt, str(e)[:1500])
             db.reset_pool()
             time.sleep(delay)
             delay = min(delay * 2, 15)
@@ -231,7 +231,7 @@ def _migrate_with_retry():
                 log.warning("Database di nuovo raggiungibile: aggiornamento completato")
                 return
             except Exception as e:
-                log.warning("Database ancora non raggiungibile: %s", str(e)[:300])
+                log.warning("Database ancora non raggiungibile: %s", str(e)[:1500])
                 db.reset_pool()
     threading.Thread(target=keep_trying, daemon=True).start()
     return False
