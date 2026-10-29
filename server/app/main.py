@@ -206,10 +206,38 @@ def _background():
         time.sleep(3600)
 
 
+def _migrate_with_retry():
+    """Aggiorna il database all'avvio. Se il database non risponde (rete, manutenzione di Neon)
+    il programma non si ferma: il sito resta online e si riprova finché il database torna raggiungibile."""
+    from .migrate import migrate
+    delay = 2
+    for attempt in range(1, 5):                     # circa 20 secondi di tentativi, poi si parte comunque
+        try:
+            migrate(verbose=True)
+            return True
+        except Exception as e:
+            log.warning("Database non raggiungibile all'avvio (tentativo %s): %s", attempt, str(e)[:300])
+            db.reset_pool()
+            time.sleep(delay)
+            delay = min(delay * 2, 15)
+
+    def keep_trying():
+        while True:
+            time.sleep(30)
+            try:
+                migrate(verbose=True)
+                log.warning("Database di nuovo raggiungibile: aggiornamento completato")
+                return
+            except Exception as e:
+                log.warning("Database ancora non raggiungibile: %s", str(e)[:300])
+                db.reset_pool()
+    threading.Thread(target=keep_trying, daemon=True).start()
+    return False
+
+
 def on_startup():
     if os.environ.get("AUTO_MIGRATE", "1") == "1":
-        from .migrate import migrate
-        migrate(verbose=True)
+        _migrate_with_retry()
     if os.environ.get("BACKGROUND_JOBS", "1") == "1":
         threading.Thread(target=_background, daemon=True).start()
 

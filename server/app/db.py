@@ -25,10 +25,50 @@ except Exception:  # pragma: no cover
 from .pq import DatabaseError  # usata da entrambi i driver
 
 
+def _ipv4_target(dsn: str) -> dict | None:
+    """Parametri per collegarsi al database solo via IPv4.
+
+    Render non ha rete IPv6 in uscita: se il nome del database (es. Neon) risolve anche in IPv6,
+    i tentativi su IPv6 falliscono con «Network is unreachable». Con gli indirizzi IPv4 il collegamento è affidabile.
+    Il nome resta in «host» per la verifica TLS e per l'instradamento di Neon (SNI).
+    """
+    import socket
+    from urllib.parse import urlsplit
+    if not dsn.startswith(("postgres://", "postgresql://")):
+        return None
+    try:
+        host = urlsplit(dsn).hostname
+    except ValueError:
+        return None
+    if not host or "," in (urlsplit(dsn).netloc or ""):
+        return None
+    try:
+        socket.inet_pton(socket.AF_INET, host)
+        return None            # è già un indirizzo IPv4
+    except OSError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, None, socket.AF_INET, socket.SOCK_STREAM)
+    except OSError:
+        return None
+    ips = list(dict.fromkeys(i[4][0] for i in infos))[:4]
+    if not ips:
+        return None
+    # libpq vuole lo stesso numero di voci in host e hostaddr
+    return {"host": ",".join([host] * len(ips)), "hostaddr": ",".join(ips)}
+
+
 class _PsycopgConn:  # pragma: no cover - percorso usato in produzione
     def __init__(self, dsn: str):
         try:
-            self._c = psycopg.connect(dsn, autocommit=True)
+            target = _ipv4_target(dsn)
+            if target:
+                try:
+                    self._c = psycopg.connect(dsn, autocommit=True, connect_timeout=10, **target)
+                    return
+                except psycopg.OperationalError:
+                    pass       # in caso di problemi si riprova nel modo normale
+            self._c = psycopg.connect(dsn, autocommit=True, connect_timeout=10)
         except Exception as e:
             raise DatabaseError(f"Connessione al database non riuscita: {e}")
 
